@@ -25,7 +25,9 @@ suite('esp32-slm-completer', () => {
 
     const cmd = items[0].command!;
     await vscode.commands.executeCommand(cmd.command, ...(cmd.arguments ?? []));
-    for (let i = 0; i < 50 && !fs.existsSync(ACCEPT_LOG); i++) await new Promise((r) => setTimeout(r, 100));
-    assert.strictEqual(fs.readFileSync(ACCEPT_LOG, 'utf-8').trim(), String(cmd.arguments![0]));
+    // 파일이 생긴 뒤 내용이 쓰이기까지 틈이 있어서, 내용이 들어올 때까지 기다린다
+    const read = () => (fs.existsSync(ACCEPT_LOG) ? fs.readFileSync(ACCEPT_LOG, 'utf-8').trim() : '');
+    for (let i = 0; i < 50 && !read(); i++) await new Promise((r) => setTimeout(r, 100));
+    assert.strictEqual(read(), String(cmd.arguments![0]));
   });
 });
