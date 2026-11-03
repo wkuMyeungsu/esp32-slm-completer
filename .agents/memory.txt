@@ -8,3 +8,4 @@
 2026-11-03 11:07 ESP-IDF v6.1 설치 완료, 펌웨어(stub) 빌드·굽기 성공, 브리지로 보드 왕복 확인 (지연 2~3ms, heap_min 약 388KB), GitHub push 완료 (wkuMyeungsu/esp32-slm-completer), 첫 CI 통과
 2026-11-03 11:15 Supabase 연동 완료 (project oyfvajzmhrpvrecxcone): events 테이블 생성, anon은 insert만, 브리지 → DB 전송 확인 (3행, 재전송 시 중복 없음)
 2026-11-03 11:19 Supabase 보안 경고 해결: rls_auto_enable() 실행 권한을 PUBLIC·anon·authenticated에서 회수 (자동 RLS는 계속 동작 확인), 저장소 .mcp.json 서버 이름을 esp32-slm-completer로 변경
+2026-11-03 11:30 확장을 .vsix로 설치(esp32Slm.bridgeDir 설정), uv.bat 때문에 브리지가 안 뜨던 버그를 통합 테스트로 발견해 셸 실행으로 수정, CI에 확장 패키징·통합 테스트 추가

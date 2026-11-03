@@ -4,7 +4,19 @@ ESP32-S3에 올린 소형 언어 모델(SLM)로 VS Code에서 Python 코드를 �
 보드를 USB로 연결하면 VS Code 확장이 보드를 찾아 커서 앞 코드를 보내고, 보드가 만든 완성을 회색 인라인 제안으로 보여 준다.
 제안과 수락 기록은 Supabase에 쌓여 모델 버전별 실사용 성적표가 된다.
 
-현재 상태: 확장 → 브리지 → 보드 → DB 전 구간이 동작한다. 보드의 모델 자리는 고정 문자열(`  # slm stub`)을 돌려주며, SLM 추론으로 교체할 예정이다.
+## 현재 상태 (2026-11-03)
+
+보드의 모델 자리는 아직 고정 문자열(`  # slm stub`, `model_version: "stub"`)을 돌려준다. SLM 학습과 추론은 `dev` 브랜치에서 진행한다.
+
+| 구간 | 상태 | 확인 방법 |
+|---|---|---|
+| 펌웨어 빌드·굽기 | 동작 | ESP-IDF v6.1 로컬 빌드, 보드에 굽고 응답 확인 |
+| 브리지 ↔ 보드 | 동작 | 요청 2건·수락 1건 왕복, 지연 2~3 ms, 최소 남은 힙 약 388 KB |
+| 브리지 → Supabase | 동작 | 3행 전송, 재전송 시 중복 없음, anon 읽기 차단 확인 |
+| 확장 ↔ 브리지 | 동작 (가짜 브리지) | 실제 VS Code 통합 테스트 1건 통과 |
+| 설치본 확장 ↔ 보드 | 확인 전 | `.vsix` 설치까지 완료, VS Code 화면에서 제안이 뜨는지는 아직 확인하지 않음 |
+| CI | 통과 (확장 통합 테스트 추가 전 기준) | 확장 패키징·통합 테스트 job은 아직 GitHub에서 실행하지 않음 |
+| SLM | 없음 | |
 
 ## 구성
 
@@ -23,11 +35,13 @@ ESP32-S3 펌웨어 (ESP-IDF v6.1)
 
 | 폴더 | 내용 |
 |---|---|
-| `firmware/` | ESP-IDF 펌웨어 |
-| `bridge/` | 확장과 보드 사이 중계, 로그 수집·전송 |
-| `extension/` | VS Code 확장 |
+| `firmware/` | ESP-IDF 펌웨어 (`main/main.c`, cJSON 의존성 `main/idf_component.yml`) |
+| `bridge/` | 확장과 보드 사이 중계, 로그 수집·전송 (`bridge.py`, 테스트 `test_bridge.py`, 설정 예시 `.env.example`) |
+| `extension/` | VS Code 확장 (`src/extension.ts`), 통합 테스트 `src/test/`, 가짜 브리지 `test-fixture/bridge.py` |
 | `db/schema.sql` | Supabase `events` 테이블, 권한, 성적표 쿼리 |
 | `.github/workflows/ci.yml` | CI |
+| `.mcp.json` | Claude Code용 Supabase MCP 서버 등록 (키 없음) |
+| `CLAUDE.md`, `.agents/memory.txt` | AI 작업용 프로젝트 안내와 진행 로그 |
 
 ## 통신 형식
 
@@ -80,7 +94,11 @@ python -m esptool --chip esp32s3 -p COM9 -b 460800 write-flash "@flash_args"
 
 1. 프로젝트 설정: Data API 켜기, 새 테이블 자동 공개 끄기, 자동 RLS 켜기.
 2. SQL Editor에서 `db/schema.sql`을 실행한다.
-3. `bridge/.env.example`을 `bridge/.env`로 복사하고 Project URL과 publishable 키를 넣는다. `.env`는 git에 올라가지 않는다.
+3. 자동 RLS를 켜면 생기는 `public.rls_auto_enable()` 함수는 기본 권한(PUBLIC)으로 anon·authenticated가 API로 실행할 수 있다(Security Advisor 경고). 실행 권한을 회수한다. 회수한 뒤에도 새 테이블에 RLS가 자동으로 켜지는 것을 확인했다.
+   ```sql
+   revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+   ```
+4. `bridge/.env.example`을 `bridge/.env`로 복사하고 Project URL과 publishable 키를 넣는다. `.env`는 git에 올라가지 않는다.
 
 `.env`가 없으면 브리지는 로그를 파일에만 남긴다.
 
@@ -97,14 +115,30 @@ cd bridge
 
 ### 4. VS Code 확장
 
+설치본으로 쓰기:
+
 ```
 cd extension
 npm install
+npm run package
+code --install-extension esp32-slm-completer-0.0.1.vsix --force
 ```
 
-`extension` 폴더를 VS Code로 열고 F5(Run Extension)를 누른다. 새로 열린 창에서 `.py` 파일에 코드를 입력하면 인라인 제안이 뜨고, Tab으로 수락한다. 확장의 출력은 출력 패널의 `ESP32 SLM` 채널에서 볼 수 있다.
+설치본은 확장 폴더가 `~/.vscode/extensions`로 옮겨지므로, VS Code 설정 `esp32Slm.bridgeDir`에 저장소 `bridge` 폴더의 절대 경로를 넣는다. 개발 모드로 쓰려면 `extension` 폴더를 VS Code로 열고 F5(Run Extension)를 누른다. 이때는 설정이 비어 있어도 `../bridge`를 쓴다.
 
-브리지는 확장이 켜질 때 한 번 보드를 찾는다. 보드를 나중에 연결했다면 창을 다시 띄운다.
+`.py` 파일에 코드를 입력하면 인라인 제안이 뜨고, Tab으로 수락한다. 확장의 출력은 출력 패널의 `ESP32 SLM` 채널에서 볼 수 있다.
+
+확장은 셸로 `uv run bridge.py`를 실행한다. Windows에서 uv가 pyenv-win shim(`uv.bat`)이면 셸 없이 실행할 수 없기 때문이다. 확장이 꺼질 때는 브리지의 stdin을 닫아, 브리지가 남은 로그를 보낸 뒤 스스로 끝나게 한다.
+
+브리지는 확장이 켜질 때 한 번 보드를 찾는다. 보드를 나중에 연결했다면 창을 다시 띄운다(`Developer: Reload Window`).
+
+통합 테스트는 실제 VS Code를 띄워, 보드 대신 `extension/test-fixture/bridge.py`(가짜 브리지)를 붙여 제안과 수락을 확인한다.
+
+```
+npm test
+```
+
+테스트용 VS Code를 내려받을 수 없는 환경이면 `VSCODE_EXECUTABLE_PATH`에 설치된 `Code.exe` 경로를 넣는다.
 
 ## 로그와 DB
 
@@ -129,6 +163,6 @@ GitHub Actions에서 push와 pull request마다 실행한다.
 
 | job | 내용 |
 |---|---|
-| `bridge` | `uv run pytest`: 포트 탐지, 로그 전송·재전송, 중복 처리 |
-| `extension` | `npm ci`, `tsc` 컴파일 |
+| `bridge` | `uv run pytest` (5건): 포트 탐지, 로그 전송·재전송, 쓰는 중인 줄 건너뛰기, 409 중복 처리 |
+| `extension` | `.vsix` 패키징, 실제 VS Code(xvfb)에서 Python 파일 → 제안 → 수락 → 브리지 accept 통합 테스트 |
 | `firmware` | `espressif/esp-idf-ci-action`으로 ESP-IDF v6.1, esp32s3 빌드 |

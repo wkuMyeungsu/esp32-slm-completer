@@ -1,16 +1,46 @@
 {
   "name": "esp32-slm-completer",
   "displayName": "ESP32 SLM Completer",
+  "description": "ESP32-S3에 올린 소형 언어 모델로 Python 코드를 자동완성한다",
   "version": "0.0.1",
+  "publisher": "wkuMyeungsu",
   "private": true,
-  "engines": { "vscode": "^1.90.0" },
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wkuMyeungsu/esp32-slm-completer"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
   "main": "./out/extension.js",
-  "activationEvents": ["onLanguage:python"],
-  "contributes": {},
-  "scripts": { "compile": "tsc -p ." },
+  "activationEvents": [
+    "onLanguage:python"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "ESP32 SLM Completer",
+      "properties": {
+        "esp32Slm.bridgeDir": {
+          "type": "string",
+          "default": "",
+          "description": "저장소 bridge 폴더의 절대 경로. 비우면 확장 폴더 옆 ../bridge (개발 모드)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "test": "tsc -p . && node ./out/test/runTest.js",
+    "package": "tsc -p . && vsce package --skip-license"
+  },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.90.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.0.0",
+    "mocha": "^12.0.3",
     "typescript": "^5.6.0"
   }
 }

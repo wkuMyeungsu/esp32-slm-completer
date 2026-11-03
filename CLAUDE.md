@@ -28,7 +28,7 @@ ESP32-S3를 활용한 SLM 에이전트 코드 컴플리터.
 | `bridge/` | Python 브리지. Espressif USB(VID 303A) 포트를 찾아 확장과 보드 사이를 중계하고, 로그를 `logs/events.jsonl`에 남긴 뒤 10초마다 Supabase로 보낸다 |
 | `extension/` | VS Code 확장. Python 파일에서 커서 앞 코드를 보내고 인라인 제안으로 보여 준다. 제안을 수락하면 브리지에 `{"type":"accept","id"}`를 보낸다 |
 | `db/schema.sql` | Supabase `events` 테이블, anon은 insert만 허용, 모델 버전별 성적표 SQL |
-| `.github/workflows/ci.yml` | CI: 브리지 pytest, 확장 tsc, 펌웨어 ESP-IDF 빌드 |
+| `.github/workflows/ci.yml` | CI: 브리지 pytest, 확장 패키징·통합 테스트(실제 VS Code + 가짜 브리지), 펌웨어 ESP-IDF 빌드 |
 
 ## 펌웨어 빌드·굽기 (로컬, ESP-IDF v6.1)
 
