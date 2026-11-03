@@ -1,0 +1,7 @@
+2026-11-03 10:18 Day20 개인 프로젝트 시작, 마감 16:30, 발표 없음
+2026-11-03 10:20 개발 환경은 ESP-IDF 사용
+2026-11-03 10:36 개발 환경 구성 중: VS Code ESP-IDF 확장 설치 완료, ESP-IDF 본체는 Installation Manager의 Easy Installation으로 설치 중
+2026-11-03 10:46 주제 선정: ESP32-S3를 활용한 SLM 에이전트 코드 컴플리터 (Python 튜토리얼로 학습한 SLM, VS Code 확장에서 보드가 잡히면 주고받으며 Python 코드 자동완성)
+2026-11-03 10:50 뼈대 작성: firmware/(ESP-IDF, 고정 문자열 응답), bridge/(Python, 포트 자동 탐지·중계), extension/(VS Code 인라인 제안), .github/workflows/ci.yml
+2026-11-03 10:51 폴더 이름 변경: esp32-c-lm → esp32-slm-completer
+2026-11-03 11:00 DB 용도 확정: 모델 버전별 실사용 성적표 (suggest·accept 행 추가, 브리지가 jsonl에 남기고 10초마다 Supabase 전송), 로그 뼈대 작성, Supabase 새 프로젝트 생성 중

@@ -1,0 +1,16 @@
+{
+  "name": "esp32-slm-completer",
+  "displayName": "ESP32 SLM Completer",
+  "version": "0.0.1",
+  "private": true,
+  "engines": { "vscode": "^1.90.0" },
+  "main": "./out/extension.js",
+  "activationEvents": ["onLanguage:python"],
+  "contributes": {},
+  "scripts": { "compile": "tsc -p ." },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.6.0"
+  }
+}
