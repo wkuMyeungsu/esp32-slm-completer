@@ -148,3 +148,11 @@ def test_syntax_check(prefix, completion, want):
     status, msg = syntax_check(prefix, completion)
     assert status == want
     assert (msg is not None) == (status in ("error", "prefix_error"))
+
+
+def test_normalize_prefix_crlf():
+    from bridge import normalize_prefix
+    # 실사용 로그에 heal '\r\n'·'\r\n\r\n'이 나왔다 (Windows VS Code 파일). 학습 데이터는 \n만 쓴다
+    assert normalize_prefix("# t\r\nx = 1\r\n\r\n") == "# t\nx = 1\n\n"
+    assert normalize_prefix("a\rb") == "a\nb"
+    assert normalize_prefix("print(\n") == "print(\n"

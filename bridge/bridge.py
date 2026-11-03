@@ -89,6 +89,13 @@ def find_port(ports=None):
     return None
 
 
+def normalize_prefix(prefix: str) -> str:
+    """학습 데이터와 같은 모양으로: 줄바꿈 \\r\\n(Windows VS Code 기본) → \\n.
+    학습 데이터는 \\n만 써서(train/corpus.py normalize) \\r은 모델이 본 적 없는 입력이다.
+    제안은 한 줄이라 VS Code가 문서 줄바꿈에 맞춰 넣는다."""
+    return prefix.replace("\r\n", "\n").replace("\r", "\n")
+
+
 def encode(tok, vocab, prefix: str) -> tuple[list[int], str, int, int, int]:
     """앞부분 → (줄인 어휘 id, 힐링 문자열, 원래 토큰 수, 어휘에 없어 버린 토큰 수, 쪼갠 토큰 수).
     토큰 힐링: 마지막 토큰을 떼고 보드가 생성 첫 토큰들을 그 문자열에 맞추게 한다 (앞부분이 공백으로 끝날 때 토큰 경계 문제).
@@ -282,7 +289,7 @@ def main() -> int:
             continue
 
         t0 = time.perf_counter()
-        prefix = req.get("prefix", "")
+        prefix = normalize_prefix(req.get("prefix", ""))
         ids, heal, total, dropped, fallback = encode(tok, vocab, prefix)
         cached = prefix == last_prefix
         if cached:
