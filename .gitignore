@@ -15,3 +15,4 @@ extension/.vscode-test/
 train/ckpt/
 train/playground/
 train/logs/
+train/data_ext/instructions18k/

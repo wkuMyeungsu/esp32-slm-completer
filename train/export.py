@@ -74,6 +74,8 @@ def write_bin(path: Path, name: str, sd: dict, cfg, rows, strs: list[bytes], eos
 
 def main() -> int:
     ck = Path(sys.argv[1] if len(sys.argv) > 1 else "ckpt/pythia-14m-general-k768")
+    # 두 번째 인자: 출력 폴더 (비교 실험용, 보드용 firmware/model.bin·bridge/vocab.json을 덮어쓰지 않게)
+    out_dir = Path(sys.argv[2]) if len(sys.argv) > 2 else None
     log = setup("export")
     tok = AutoTokenizer.from_pretrained(ck)
     hf = AutoModelForCausalLM.from_pretrained(ck, dtype=torch.float32).eval()
@@ -85,10 +87,10 @@ def main() -> int:
     strs = [token_bytes(tok.convert_ids_to_tokens(o)) for o in keep]
     eos = remap[tok.eos_token_id]
 
-    out = ROOT / "firmware" / "model.bin"
+    out = out_dir / "model.bin" if out_dir else ROOT / "firmware" / "model.bin"
     sd = load_file(ck / "model.safetensors")  # 저장된 이름 그대로 (hf.state_dict()에는 embed_out.weight 키가 없다)
     version = write_bin(out, ck.name, sd, cfg, None if shrunk else keep, strs, eos)
-    vocab = ROOT / "bridge" / "vocab.json"
+    vocab = out_dir / "vocab.json" if out_dir else ROOT / "bridge" / "vocab.json"
     # 브리지가 보드의 model_version과 비교해 어휘 표가 어긋났는지 확인한다
     vocab.write_text(json.dumps({"model_version": version, "fallback": shrunk, "keep": keep, "eos": eos}),
                      encoding="utf-8")

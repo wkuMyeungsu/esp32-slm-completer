@@ -1,10 +1,14 @@
-"""범용 학습: MBPP 학습 문제 + 대표 예시로 원본 Pythia를 학습한다. 학습 전에 어휘를 줄여 결과가 바로 보드용이다.
+"""범용 학습: 원본 Pythia를 학습 데이터 전부를 섞어 한 번에 학습한다. 학습 전에 어휘를 줄여 결과가 바로 보드용이다.
+
+데이터 (--data): mbpp = MBPP 학습 문제만 (처음 방식), mix = MBPP 974문제 스크립트형 변형(corpus.mbpp_scripts)
++ python_code_instructions_18k 표준 라이브러리 코드(corpus.instructions18k), 둘 다 테스트 세트 줄이 든 것은 뺀다(decontaminate).
+대표 예시 8개는 --repeat번.
 
 1. 어휘: 학습 코드에서 자주 나오는 토큰 K개 + 1바이트 토큰 + EOS (bridge/vocab_map.py 규칙).
 2. 모델: embed_in·embed_out에서 그 행만 남긴다 (50,304 → 약 1,000).
 3. 데이터: 프로그램마다 한 줄 시퀀스, 어휘에 없는 토큰은 쪼갠다 (브리지·평가와 같은 규칙). 끝에 EOS.
    대표 예시는 비중이 너무 작아지지 않게 --repeat번 넣는다.
-4. heldout(평가 전용 MBPP 100문제) loss가 가장 낮은 스텝을 저장한다.
+4. 저장 시점: --select dev면 testsets/dev loss, mbpp면 MBPP heldout loss가 가장 낮은 스텝 (test는 쓰지 않는다).
 
 사용: uv run train_general.py --k 768 --steps 1500
 결과: ckpt/<이름>/ (줄인 모델 + keep.json), 로그 logs/train_general-<시각>.log
@@ -23,7 +27,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent / "bridge"))
 
-from corpus import examples, mbpp  # noqa: E402
+from corpus import decontaminate, examples, instructions18k, mbpp, mbpp_scripts, testset  # noqa: E402
 from log_setup import setup  # noqa: E402
 from vocab_map import Vocab, token_bytes  # noqa: E402
 
@@ -96,6 +100,8 @@ def main() -> None:
     ap.add_argument("--eval-every", type=int, default=100)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--name", default=None)
+    ap.add_argument("--data", choices=["mix", "mbpp"], default="mix")
+    ap.add_argument("--select", choices=["dev", "mbpp"], default="dev", help="저장 시점을 고를 세트")
     a = ap.parse_args()
     log = setup("train_general")
     log.info("설정 %s, torch %s, transformers %s", vars(a), torch.__version__, transformers.__version__)
@@ -104,7 +110,11 @@ def main() -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     tok = AutoTokenizer.from_pretrained(a.base)
-    train_texts, held_texts = mbpp("train"), mbpp("heldout")
+    if a.data == "mix":
+        train_texts, n_contam = decontaminate(mbpp_scripts() + instructions18k())
+    else:
+        train_texts, n_contam = mbpp("train"), 0
+    held_texts = testset("dev") if a.select == "dev" else mbpp("heldout")
     keep = build_keep(tok, train_texts + examples(), a.k)
     v = Vocab(keep, tok.convert_ids_to_tokens)
     eos = v.remap[tok.eos_token_id]
@@ -115,9 +125,9 @@ def main() -> None:
 
     train = [to_seq(t) for t in train_texts] + [to_seq(t) for t in examples()] * a.repeat
     held = [to_seq(t) for t in held_texts]
-    log.info("어휘 %d (K %d), 학습 시퀀스 %d (MBPP %d + 예시 %d×%d), %d토큰, heldout %d, %s",
-             len(keep), a.k, len(train), len(train_texts), len(examples()), a.repeat, sum(map(len, train)),
-             len(held), device)
+    log.info("어휘 %d (K %d), 학습 시퀀스 %d (%s %d, 테스트 줄이 들어 있어 뺀 것 %d, + 예시 %d×%d), %d토큰, 저장 기준 %s %d, %s",
+             len(keep), a.k, len(train), a.data, len(train_texts), n_contam, len(examples()), a.repeat,
+             sum(map(len, train)), a.select, len(held), device)
 
     # transformers 5는 체크포인트 dtype(Pythia는 float16)으로 불러온다. float16 그대로 AdamW 학습하면 loss가 nan
     model = AutoModelForCausalLM.from_pretrained(a.base, dtype=torch.float32)
