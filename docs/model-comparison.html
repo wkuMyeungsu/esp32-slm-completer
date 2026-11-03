@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기존 모델 비교 | esp32-slm-completer</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --ink: #1d2430; --muted: #5a6575; --line: #dde2ea;
+    --good: #1f7a55; --good-soft: #e7f5ee; --mid: #8a5a00; --mid-soft: #fdf3dc; --bad: #a2352a; --bad-soft: #fbeae8;
+    --code: #eef1f5;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.6;
+    font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 28px 16px 56px; }
+  header h1 { margin: 0 0 6px; font-size: 1.6rem; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; margin-top: 18px; }
+  h2 { margin: 0 0 12px; font-size: 1.15rem; }
+  .tbl { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: #f0f3f7; font-weight: 600; white-space: nowrap; }
+  td:first-child { font-weight: 600; }
+  tr.pick td { background: var(--good-soft); }
+  code { background: var(--code); border-radius: 4px; padding: 1px 5px; font-size: 0.88em;
+    font-family: Consolas, "D2Coding", ui-monospace, monospace; }
+  .fit { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
+  .fit.g { background: var(--good-soft); color: var(--good); border: 1px solid #b7dfc9; }
+  .fit.m { background: var(--mid-soft); color: var(--mid); border: 1px solid #f0d9a8; }
+  .fit.b { background: var(--bad-soft); color: var(--bad); border: 1px solid #efc4be; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .two > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+  .two h3 { margin: 0 0 6px; font-size: 1rem; }
+  .two ul { margin: 0; padding-left: 1.2em; }
+  .two li { margin: 4px 0; }
+  @media (max-width: 720px) { .two { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>기존 모델 비교</h1>
+  <p>ESP32-S3 보드에서 Python 자동완성을 하려고 검토한 공개 모델들의 장단점과, 이 프로젝트에 맞는 점을 정리했다. (2026-11-03 기준)</p>
+</header>
+
+<section>
+  <h2>이 프로젝트가 모델에 요구하는 것</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>조건</th><th>이유</th></tr>
+    <tr><td>float32 약 6MB 이하</td><td>가중치는 플래시 model 파티션(6MB)에 굽고 부팅 때 PSRAM(8MB)으로 읽는다. PSRAM에는 KV 캐시 1.5MB도 함께 올라간다.</td></tr>
+    <tr><td>표준 구조</td><td>추론을 C로 직접 짜서 보드에 넣는다. 원격 코드(trust_remote_code)가 필요한 구조는 옮기고 맞춰 보기가 어렵다.</td></tr>
+    <tr><td>사전학습에 코드 포함</td><td>코드를 본 적 없는 모델은 적은 데이터로 코드를 배우기 어렵다.</td></tr>
+    <tr><td>임베딩을 줄일 수 있을 것</td><td>쓰는 토큰만 남기면 크기가 크게 준다. 토큰마다 가중치 전부를 PSRAM에서 읽으므로 크기가 곧 속도다.</td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>후보 모델</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>모델</th><th>크기·구조</th><th>사전학습</th><th>장점</th><th>단점</th><th>적합도</th></tr>
+    <tr class="pick"><td>Pythia-14M<br><span style="font-weight:400;color:#5a6575">EleutherAI</span></td>
+      <td>14.1M, d 128, 6층, 어휘 50,304 (임베딩 92%, 입력·출력 분리)</td>
+      <td>The Pile (GitHub 코드 포함)</td>
+      <td>표준 GPT-NeoX. 어휘를 1,012로 줄이면 5.8MB</td>
+      <td>핵심부 약 119만 파라미터로 작다. 원본은 괄호를 못 닫고 영어·URL로 새며 같은 토큰을 반복</td>
+      <td><span class="fit g">선택</span></td></tr>
+    <tr><td>Pythia-31M<br><span style="font-weight:400;color:#5a6575">EleutherAI</span></td>
+      <td>30.5M, d 256, 6층, 어휘 50,304</td>
+      <td>The Pile</td>
+      <td>원본도 괄호를 닫고 들여쓰기와 def·return 짝을 맞춘다</td>
+      <td>어휘를 줄여도 float32 21,033,638 B로 보드 초과. 같은 데이터로 학습하면 14M과 차이가 작다 (평가 loss 1.5315 vs 1.5540)</td>
+      <td><span class="fit m">int8이면 후보</span></td></tr>
+    <tr><td>Doge-20M<br><span style="font-weight:400;color:#5a6575">SmallDoge</span></td>
+      <td>13.1M, d 256, 8층, 어휘 32,768</td>
+      <td>smollm-corpus (교육용 Python 코드 python-edu 포함)</td>
+      <td>쉬운 Python 코드를 사전학습에 많이 봤다</td>
+      <td>원격 코드가 필요한 비표준 구조라 C로 옮겨 맞춰 보기 어렵다</td>
+      <td><span class="fit m">구조가 걸림</span></td></tr>
+    <tr><td>min-spark-1.5<br><span style="font-weight:400;color:#5a6575">MinimaLabs</span></td>
+      <td>9.4M, 어휘 4,096, 블록 공유·반복</td>
+      <td>smollm-corpus 등</td>
+      <td>어휘가 작아 임베딩이 작다</td>
+      <td>블록을 공유·반복하는 비표준 구조, 원격 코드 필요</td>
+      <td><span class="fit m">구조가 걸림</span></td></tr>
+    <tr><td>SmolLM2-135M<br><span style="font-weight:400;color:#5a6575">Hugging Face</span></td>
+      <td>본체만 약 1억 파라미터</td>
+      <td>크기에서 제외해 확인하지 않음</td>
+      <td>후보 중 가장 큰 모델</td>
+      <td>본체만으로 보드 메모리를 크게 넘는다</td>
+      <td><span class="fit b">크기 초과</span></td></tr>
+    <tr><td>TinyStories 계열<br><span style="font-weight:400;color:#5a6575">260K·3.3M</span></td>
+      <td>llama2.c 구조</td>
+      <td>어린이 동화만</td>
+      <td>ESP32-S3 공개 프로젝트들이 12~33 tok/s로 돌린, 보드에서 검증된 모델</td>
+      <td>코드를 학습하지 않았다</td>
+      <td><span class="fit b">코드 없음</span></td></tr>
+    <tr><td>esp32-ai-barista<br><span style="font-weight:400;color:#5a6575">8.9M</span></td>
+      <td>6층, d 128. int4로 저장(약 4.6MB)해 부팅 때 int8, 입력 어휘 8,057·출력 854</td>
+      <td>비공개 질의응답 데이터 (에스프레소 문제 해결)</td>
+      <td>양자화, 입력·출력 어휘 분리, 범위 좁히기로 보드에 맞춘 사례</td>
+      <td>코드 모델이 아니고 데이터·체크포인트가 비공개</td>
+      <td><span class="fit b">기법만 참고</span></td></tr>
+    <tr><td>pico-decoder-tiny, Tiny-LLM, gpt2-mini, nanochat-40M</td>
+      <td>4천만 파라미터 이하</td>
+      <td>영어 텍스트(Dolma), 웹 텍스트, 대화</td>
+      <td>보드에 넣을 수 있는 크기</td>
+      <td>코드를 학습하지 않았다</td>
+      <td><span class="fit b">코드 없음</span></td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>원본 그대로 Python 이어쓰기</h2>
+  <p>학습 전 원본 두 모델에 같은 앞부분을 주고 탐욕적으로 24토큰을 생성했다.</p>
+  <div class="tbl">
+  <table>
+    <tr><th>앞부분</th><th>Pythia-14M</th><th>Pythia-31M</th></tr>
+    <tr><td><code># print hello world</code> + <code>print(</code></td><td><code>0, "http://www.com/news/news/...</code></td><td><code>hello world)</code> 다음 같은 줄 반복</td></tr>
+    <tr><td><code>for i in range(</code></td><td><code>i, $i,1,i,1,i,1,...</code></td><td><code>0,0):</code> 다음 줄을 들여 써서 <code>for</code>·<code>if</code></td></tr>
+    <tr><td><code>def add(a, b):</code> + <code>return</code></td><td><code>b.b.b.b.b.b...</code></td><td><code>add(a, b)</code> (자기 자신 호출)</td></tr>
+  </table>
+  </div>
+  <p>31M은 형식(괄호, 들여쓰기)을 알지만 내용은 둘 다 틀리다. 14M은 형식부터 학습으로 채워야 했다.</p>
+</section>
+
+<section>
+  <h2>Pythia-14M이 이 프로젝트에 맞은 점과 안 맞은 점</h2>
+  <div class="two">
+    <div>
+      <h3>맞은 점</h3>
+      <ul>
+        <li>조건 네 가지를 모두 만족한 유일한 후보였다.</li>
+        <li>표준 구조라 C와 numpy로 직접 옮겼고, torch와 로짓 최대 오차 5.91e-05로 맞는다.</li>
+        <li>입력·출력 임베딩이 분리돼 있어 쓰는 토큰 1,012개만 남기면 5.8MB다. KV 캐시와 함께 PSRAM에 들어가고 1,188,740 B가 남는다.</li>
+        <li>2,000스텝 학습이 약 2분이라 데이터를 바꿔 여러 번 시도할 수 있었다.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>안 맞은 점</h3>
+      <ul>
+        <li>핵심부가 작아 학습 뒤에도 처음 보는 쉬운 코드에서 줄 중간 정확 일치 0.117, 줄 시작 0.027이다.</li>
+        <li>어휘를 1,012로 줄이면 처음 보는 코드의 입력 토큰 23%가 더 작은 토큰으로 쪼개져 길어지고, 보드 시간이 늘어난다 (토큰당 119 ms).</li>
+        <li>같은 줄을 다시 쓰는 습관이 남아 있다 (실사용에서 <code># Replace</code>를 줄마다 제안).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>다른 모델에서 이 프로젝트에 맞는 것</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>기법</th><th>쓴 곳</th><th>이 프로젝트에 맞는 이유</th><th>상태</th></tr>
+    <tr><td>int8 양자화</td><td>esp32-ai-barista, ESP32용 llama2.c 이식 (doryiii/esp32-llm)</td><td>토큰마다 읽는 가중치가 1/4이 된다. Pythia-31M(핵심부 약 470만)도 계산상 약 5MB대로 보드에 들어간다</td><td>아직 안 함</td></tr>
+    <tr><td>입력·출력 어휘 분리</td><td>esp32-ai-barista (입력 8,057, 출력 854)</td><td>입력 어휘는 크게 해서 쪼개짐을 줄이고, 출력 어휘는 작게 해서 출력층 계산을 줄인다</td><td>아직 안 함</td></tr>
+    <tr><td>범위 좁히기</td><td>esp32-ai-barista (에스프레소 문제만)</td><td>작은 모델의 용량을 한 주제에 모은다</td><td>표준 라이브러리만 쓰는 쉬운 Python으로 학습 데이터를 좁혔다</td></tr>
+  </table>
+  </div>
+</section>
+</main>
+</body>
+</html>

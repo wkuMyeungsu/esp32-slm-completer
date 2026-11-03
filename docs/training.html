@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>학습 과정 | esp32-slm-completer</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --ink: #1d2430; --muted: #5a6575; --line: #dde2ea;
+    --accent: #1f5fbf; --accent-soft: #eaf1fc; --now: #1f7a55; --now-soft: #e7f5ee; --code: #eef1f5;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.6;
+    font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 28px 16px 56px; }
+  header h1 { margin: 0 0 6px; font-size: 1.6rem; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; margin-top: 18px; }
+  h2 { margin: 0 0 12px; font-size: 1.15rem; }
+  h3 { margin: 0 0 6px; font-size: 1.02rem; }
+  .tbl { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: #f0f3f7; font-weight: 600; white-space: nowrap; }
+  td:first-child { white-space: nowrap; }
+  td.n, th.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  tr.now td { background: var(--now-soft); }
+  code { background: var(--code); border-radius: 4px; padding: 1px 5px; font-size: 0.88em;
+    font-family: Consolas, "D2Coding", ui-monospace, monospace; }
+  pre { background: var(--code); border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 0;
+    font: 0.85rem/1.55 Consolas, "D2Coding", ui-monospace, monospace; }
+  ul { margin: 6px 0 0; padding-left: 1.2em; }
+  li { margin: 3px 0; }
+
+  .steps { position: relative; margin: 4px 0 0; padding: 0; list-style: none; }
+  .steps::before { content: ""; position: absolute; left: 15px; top: 6px; bottom: 6px; width: 2px; background: var(--line); }
+  .step { position: relative; padding: 0 0 18px 46px; }
+  .step:last-child { padding-bottom: 0; }
+  .dot { position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent); border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  .step.side .dot { background: #f4f4f4; color: var(--muted); border-color: #b9c0ca; font-size: 0.8rem; }
+  .step.now .dot { background: var(--now-soft); color: var(--now); border-color: var(--now); }
+  .step dl { display: grid; grid-template-columns: 88px 1fr; gap: 4px 10px; margin: 6px 0 0; font-size: 0.94rem; }
+  .step dt { color: var(--muted); }
+  .step dd { margin: 0; }
+  @media (max-width: 560px) { .step dl { grid-template-columns: 1fr; } .step dt { margin-top: 6px; } }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>학습 과정</h1>
+  <p>원본 Pythia-14M에서 세 단계를 거쳤다. 지금 보드에 올라간 모델은 MBPP와 python_code_instructions_18k의 코드를 섞어 원본부터 학습한 <code>pythia-14m-mix-k768-bb810c04</code>다. (2026-11-03 기준)</p>
+</header>
+
+<section>
+  <h2>사용한 모델</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>항목</th><th>값</th></tr>
+    <tr><td>시작 모델</td><td>EleutherAI/pythia-14m (GPT-NeoX 구조, The Pile로 사전학습, 14.1M 파라미터 중 92%가 임베딩)</td></tr>
+    <tr><td>구조</td><td>6층, d 128, 헤드 4개(헤드당 32), FFN 512, 회전 위치 임베딩은 헤드 차원 32 중 8, parallel residual, GELU</td></tr>
+    <tr><td>바꾼 것</td><td>어휘 50,304 → 1,012. 입력·출력 임베딩에서 남길 토큰의 행만 잘라 학습한다 (2·3단계는 학습 전에 자름). 층은 그대로라 핵심부 약 119만 파라미터</td></tr>
+    <tr><td>보드 파일</td><td><code>model.bin</code> float32 5,800,740 B (가중치 + 토큰 문자열 + 모델 버전)</td></tr>
+  </table>
+  </div>
+  <p>어휘 1,012개는 학습 코드에서 자주 나오는 토큰 768개 + 1바이트 토큰 243개 + EOS다. 어휘에 없는 토큰은 버리지 않고 어휘 안의 더 작은 토큰(최악은 1바이트)으로 쪼개서, 입력이 빠지지 않는다. 768개는 어휘 크기별로 쪼개짐과 파일 크기를 재서 골랐다 (아래 표, 2단계 데이터 기준).</p>
+  <div class="tbl">
+  <table>
+    <tr><th class="n">자주 나오는 토큰</th><th class="n">전체 어휘</th><th class="n">입력 길이 증가</th><th class="n">model.bin</th></tr>
+    <tr><td class="n">256</td><td class="n">500</td><td class="n">+39.6%</td><td class="n">5.27MB</td></tr>
+    <tr><td class="n">512</td><td class="n">756</td><td class="n">+21.7%</td><td class="n">5.53MB</td></tr>
+    <tr class="now"><td class="n">768</td><td class="n">1,012</td><td class="n">+13.6%</td><td class="n">5.80MB</td></tr>
+    <tr><td class="n">1,024</td><td class="n">1,268</td><td class="n">+9.9%</td><td class="n">6.06MB</td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>단계별 진행</h2>
+  <ol class="steps">
+    <li class="step">
+      <span class="dot">1</span>
+      <h3>예시 8개 외우기</h3>
+      <dl>
+        <dt>데이터</dt><dd>직접 만든 초급 예시 8개 (hello, variables, grade, times_table, while_sum, list_stats, factorial, calculator, 2~20줄)</dd>
+        <dt>방법</dt><dd>전체 어휘 모델을 그대로 파인튜닝 (<code>finetune.py</code>, 8개를 한 배치, AdamW lr 3e-4, 300스텝). 보드용으로 내보낼 때 예시에 나온 토큰 151개 + EOS만 남겼고, 어휘에 없는 입력 토큰은 버렸다. 토큰 힐링을 넣었다.</dd>
+        <dt>결과</dt><dd>loss 3.2299 → 0.0354. 예시 51줄 다음 줄 정확도 0.961 → 힐링 뒤 1.000. 처음 보는 코드(test)는 정확 일치 0, 입력 토큰의 56%를 버렸다.</dd>
+        <dt>다음으로</dt><dd>외운 줄만 되살리고, 처음 보는 코드는 입력 절반 이상을 보지 못한다.</dd>
+      </dl>
+    </li>
+    <li class="step">
+      <span class="dot">2</span>
+      <h3>MBPP로 범용 학습</h3>
+      <dl>
+        <dt>데이터</dt><dd>MBPP 874문제 (평가용 100문제 제외, 첫 줄에 문제 설명 주석) + 예시 8개 × 8 = 938개, 88,864토큰</dd>
+        <dt>방법</dt><dd>원본에서 시작해 학습 전에 어휘를 1,012개로 자르고, 없는 토큰은 쪼갠다 (<code>train_general.py --data mbpp</code>, 300스텝). 1,500스텝으로 돌리면 200스텝 뒤부터 과적합이었다.</dd>
+        <dt>결과</dt><dd>test 줄 중간 정확 일치 0.056, 문법 통과 0.706 (줄 시작 0.656)</dd>
+        <dt>다음으로</dt><dd>최상위 줄에서 <code>return</code>을 내고(문법 오류), 첫 줄 주석 없이 <code>print</code>부터 치면 <code>Write a function</code>을 이어 쓴다. 학습 데이터가 전부 MBPP 함수 문제이고 모두 <code># Write a function ...</code>으로 시작해서 생긴 편향이다.</dd>
+      </dl>
+    </li>
+    <li class="step side">
+      <span class="dot">실험</span>
+      <h3>모델을 키우면? (Pythia-31M)</h3>
+      <dl>
+        <dt>방법</dt><dd>2단계와 같은 데이터·방법으로 Pythia-31M (d 256) 학습</dd>
+        <dt>결과</dt><dd>평가 loss 1.5315 (14M 1.5540). 학습 loss는 0.2554까지 내려가 학습 데이터를 외웠다. 보드용 파일은 float32 21,033,638 B로 보드에 안 들어간다.</dd>
+        <dt>판단</dt><dd>데이터가 8.9만 토큰일 때는 모델 크기보다 데이터 양이 병목이다. 모델은 14M으로 두고 데이터를 늘린다.</dd>
+      </dl>
+    </li>
+    <li class="step now">
+      <span class="dot">3</span>
+      <h3>데이터를 섞어 원본부터 다시 (지금 모델)</h3>
+      <dl>
+        <dt>데이터</dt><dd>MBPP 974문제 전부(스크립트형 변형) + python_code_instructions_18k 표준 라이브러리 코드 12,865개 + 예시 8개 × 8 = 13,486개, 1,660,453토큰 (아래 표)</dd>
+        <dt>방법</dt><dd>2단계 모델 위에 이어서 학습하지 않고 원본에서 다시. 어휘를 새 데이터로 다시 고르고, MBPP 함수 편향 위에서 시작하지 않기 위해서다. 2,000스텝, 100스텝마다 dev loss를 재서 가장 낮은 시점을 저장. 예시 반복 8번(A)과 32번(B)을 비교해 A를 골랐다.</dd>
+        <dt>결과</dt><dd>test 줄 중간 정확 일치 0.117, 문법 통과 0.934 (줄 시작 0.919)</dd>
+        <dt>A와 B</dt><dd>B는 예시 외우기 1.000(A 0.549)이지만 dev 줄 중간 정확 일치가 0.123으로 A(0.158)보다 낮아, 처음 보는 코드에 더 나은 A를 보드에 올렸다.</dd>
+      </dl>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>지금 모델의 학습 데이터</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>데이터</th><th>출처·라이선스</th><th class="n">원본</th><th class="n">사용</th><th>넣은 모양</th></tr>
+    <tr><td>MBPP</td><td>google-research/google-research 저장소의 <code>mbpp/mbpp.jsonl</code> (Austin et al., 2021), CC BY 4.0</td><td class="n">974</td><td class="n">974</td><td>첫 줄 문제 설명 주석은 절반만, 테스트 케이스 <code>assert f(x) == y</code>를 <code>print(f(x))</code>로 바꿔 끝에 붙임</td></tr>
+    <tr><td>python_code_instructions_18k</td><td>Hugging Face <code>iamtarun/python_code_instructions_18k_alpaca</code> (sahil2801/code_instructions_120k에서 가져옴), 데이터 카드에 라이선스 표기 없음. 저장소에는 넣지 않고 학습할 때 받는다</td><td class="n">18,612</td><td class="n">12,865</td><td><code>output</code> 코드. 2~60줄, 문법 통과, 표준 라이브러리만 import, 같은 코드는 하나만. 지시문 주석은 절반만 (200자 미만일 때)</td></tr>
+    <tr><td>대표 예시</td><td>직접 작성 (<code>train/data/</code>)</td><td class="n">8</td><td class="n">8 × 8</td><td>그대로</td></tr>
+    <tr><td>테스트 줄 제거</td><td>dev·test 세트의 20자 이상 줄이 들어 있는 학습 코드를 뺌</td><td class="n"></td><td class="n">−417</td><td></td></tr>
+    <tr class="now"><td>합계</td><td></td><td class="n"></td><td class="n">13,486</td><td>1,660,453토큰 (print 있음 8,212, def 있음 10,947, input 있음 455)</td></tr>
+  </table>
+  </div>
+  <ul>
+    <li>공통 정리: 줄바꿈 <code>\r\n</code> → <code>\n</code>, 탭 → 공백 4칸, 줄 끝 공백 제거, 블록 깊이로 들여쓰기를 4칸 단위로 다시 맞춤 (원본에 1칸·2칸 들여쓰기가 섞여 있었다. 정리 뒤 들여쓴 줄의 97.5%가 4칸 단위, 나머지는 괄호 안 이어지는 줄).</li>
+    <li>"절반만"은 문제 번호의 sha256 첫 바이트가 짝수인 것이다. 모든 파일이 설명 주석으로 시작한다는 편향을 줄이려고 넣었다.</li>
+    <li>flask·numpy·sklearn처럼 외부 라이브러리를 쓰는 코드는 뺐다 (18k에서 2,817개).</li>
+  </ul>
+</section>
+
+<section>
+  <h2>학습 설정 (지금 모델)</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>항목</th><th>값</th></tr>
+    <tr><td>시퀀스</td><td>프로그램 하나 = 시퀀스 하나, 끝에 EOS, 최대 256토큰 (넘으면 뒤를 자름)</td></tr>
+    <tr><td>최적화</td><td>배치 32, AdamW lr 5e-4, weight decay 0.01, OneCycle (워밍업 5%), 기울기 자르기 1.0, 2,000스텝, seed 0</td></tr>
+    <tr><td>저장 시점</td><td>dev 세트 loss가 가장 낮은 1,600스텝 (1.9463)</td></tr>
+    <tr><td>시간·환경</td><td>약 2분, RTX 3060 12GB, torch 2.11.0+cu128, transformers 5.22.1, 원본 가중치는 float32로 불러옴</td></tr>
+    <tr><td>내보내기</td><td><code>export.py</code>가 model.bin을 쓰고 numpy로 다시 읽어 torch와 비교 (로짓 최대 오차 5.91e-05, 최고 토큰 모두 일치)</td></tr>
+  </table>
+  </div>
+  <div class="tbl" style="margin-top:12px">
+  <table>
+    <tr><th>스텝</th><th class="n">0</th><th class="n">400</th><th class="n">800</th><th class="n">1,200</th><th class="n">1,600</th><th class="n">2,000</th></tr>
+    <tr><td>dev loss</td><td class="n">3.3566</td><td class="n">2.2233</td><td class="n">2.0771</td><td class="n">1.9945</td><td class="n">1.9463</td><td class="n">1.9732</td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>평가 방법</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>세트</th><th>내용</th><th>쓰임</th></tr>
+    <tr><td>dev</td><td>Think Python 2판 예제(Allen Downey, MIT·CC BY 4.0)와 Exercism Python 모범 답안(MIT)에서 고른 쉬운 코드 25개. 클래스·yield·외부 파일·외부 라이브러리 없음, 코드 5~40줄</td><td>저장 시점, 모델 선택, CI 기준</td></tr>
+    <tr><td>test</td><td>같은 출처의 다른 25개</td><td>모델을 정한 뒤 한 번만 측정</td></tr>
+    <tr><td>예시</td><td>학습에 넣은 예시 8개 (51줄)</td><td>외우기 확인</td></tr>
+  </table>
+  </div>
+  <p>문항은 줄 시작(다음 줄 전체를 맞히기)과 줄 중간(줄을 절반쯤 친 상태에서 나머지 맞히기) 두 가지이고, 프로그램 하나가 점수를 좌우하지 않게 프로그램당 최대 12문항이다. 지표는 정확 일치, 줄당 맞게 채워 주는 글자, 문법 통과(Python 파서로 판정)다. 생성 규칙은 보드와 같은 코드를 쓴다.</p>
+</section>
+
+<section>
+  <h2>단계별 결과 (test)</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>모델</th><th class="n">줄 시작 정확 일치</th><th class="n">줄 시작 문법 통과</th><th class="n">줄 중간 정확 일치</th><th class="n">줄 중간 맞는 글자/줄</th><th class="n">줄 중간 문법 통과</th><th class="n">예시 외우기</th></tr>
+    <tr><td>1단계 <code>pythia-14m-ft-0bbd3425</code></td><td class="n">0.000</td><td class="n">0.597</td><td class="n">0.008</td><td class="n">0.02</td><td class="n">0.711</td><td class="n">1.000</td></tr>
+    <tr><td>2단계 <code>pythia-14m-general-k768-s300-40b80eb5</code></td><td class="n">0.008</td><td class="n">0.656</td><td class="n">0.056</td><td class="n">0.38</td><td class="n">0.706</td><td class="n">1.000</td></tr>
+    <tr class="now"><td>3단계 <code>pythia-14m-mix-k768-bb810c04</code></td><td class="n">0.027</td><td class="n">0.919</td><td class="n">0.117</td><td class="n">0.96</td><td class="n">0.934</td><td class="n">0.549</td></tr>
+  </table>
+  </div>
+  <p>세 모델 모두 같은 test 세트와 같은 생성 규칙(토큰 힐링, 반복 3번이면 멈춤)으로 쟀다. 보드에서 3단계 모델은 예시 51줄 평균 1,194 ms, 토큰당 119 ms다.</p>
+</section>
+
+<section>
+  <h2>다시 학습하는 명령</h2>
+<pre>cd train
+uv run train_general.py --data mix --select dev --k 768 --steps 2000 --eval-every 100 --name pythia-14m-mix-k768
+uv run export.py ckpt/pythia-14m-mix-k768                 # firmware/model.bin, bridge/vocab.json
+uv run eval_bin.py --torch ckpt/pythia-14m-mix-k768 --final   # GPU 평가, --final이면 test까지</pre>
+</section>
+
+<section>
+  <h2>막혔던 점</h2>
+  <div class="tbl">
+  <table>
+    <tr><th>증상</th><th>원인</th><th>조치</th></tr>
+    <tr><td>loss가 2스텝부터 nan</td><td>transformers 5가 Pythia를 저장된 float16으로 불러와 AdamW 중 값이 넘침</td><td>float32로 불러옴</td></tr>
+    <tr><td>앞부분이 공백으로 끝나면 빈 제안</td><td>공백 덩어리가 학습 때와 다르게 한 토큰으로 묶임</td><td>토큰 힐링 (마지막 토큰을 떼고 생성 쪽에서 다시 맞춤)</td></tr>
+    <tr><td>Windows에서 정확도가 낮음</td><td>VS Code 파일의 <code>\r\n</code>을 모델이 학습 때 본 적이 없음</td><td>브리지가 <code>\n</code>으로 바꾼 뒤 토큰화 (정확 일치 0.103 → 0.143, MBPP 30문제)</td></tr>
+    <tr><td>MBPP만으로 1,500스텝이면 평가 loss 상승</td><td>8.9만 토큰을 7에폭 넘게 반복해 과적합</td><td>3단계에서 데이터를 약 19배로 늘림</td></tr>
+  </table>
+  </div>
+</section>
+</main>
+</body>
+</html>
