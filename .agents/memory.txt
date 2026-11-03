@@ -5,3 +5,4 @@
 2026-11-03 10:50 뼈대 작성: firmware/(ESP-IDF, 고정 문자열 응답), bridge/(Python, 포트 자동 탐지·중계), extension/(VS Code 인라인 제안), .github/workflows/ci.yml
 2026-11-03 10:51 폴더 이름 변경: esp32-c-lm → esp32-slm-completer
 2026-11-03 11:00 DB 용도 확정: 모델 버전별 실사용 성적표 (suggest·accept 행 추가, 브리지가 jsonl에 남기고 10초마다 Supabase 전송), 로그 뼈대 작성, Supabase 새 프로젝트 생성 중
+2026-11-03 11:07 ESP-IDF v6.1 설치 완료, 펌웨어(stub) 빌드·굽기 성공, 브리지로 보드 왕복 확인 (지연 2~3ms, heap_min 약 388KB), GitHub push 완료 (wkuMyeungsu/esp32-slm-completer), 첫 CI 통과
