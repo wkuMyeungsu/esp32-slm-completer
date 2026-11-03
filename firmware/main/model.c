@@ -16,6 +16,8 @@
 #define MAX_F 1024
 #define MAX_V 1280  // 어휘 상한 (지금 1,012)
 #define STR_MAX 16384  // model.bin의 토큰 문자열 + 모델 버전 최대 바이트
+#define REPEAT 3       // 같은 조각이 3번 연속이면 반복으로 보고 멈춘다 (npmodel.py REPEAT와 같게)
+#define MAX_PERIOD 8   // 반복 조각 최대 길이 (토큰)
 
 static const char *TAG = "model";
 
@@ -170,6 +172,20 @@ static const float *step(int tok, int pos)
     return logits;
 }
 
+// g 끝이 길이 p(1~MAX_PERIOD)인 조각을 REPEAT번 연속 반복하면 첫 번째 조각까지만 남길 길이, 아니면 -1.
+// train/npmodel.py의 repeat_cut과 같은 규칙 (진짜 반복이어도 잘린 앞부분은 맞는 코드라 막지 않고 멈춘다)
+static int repeat_cut(const int *g, int n)
+{
+    for (int p = 1; p <= MAX_PERIOD; p++) {
+        int m = p * REPEAT;
+        if (n < m) continue;
+        bool same = true;
+        for (int i = 0; i < m && same; i++) same = g[n - m + i] == g[n - m + i % p];
+        if (same) return n - m + p;
+    }
+    return -1;
+}
+
 // 글자가 나온 뒤 줄바꿈이 나왔는지 (완성은 한 줄)
 static bool line_done(const char *body)
 {
@@ -191,7 +207,8 @@ int model_generate(const int *ids, int n, const char *heal, int max_new, char *o
         ids += n - (MODEL_MAX_SEQ - max_new);
         n = MODEL_MAX_SEQ - max_new;
     }
-    int pos = 0, made = 0;
+    int pos = 0, made = 0, gen[MODEL_MAX_NEW], ng = 0;  // gen: 힐링이 끝난 뒤 생성한 토큰
+    if (max_new > MODEL_MAX_NEW) max_new = MODEL_MAX_NEW;
     while (pos < n - 1 && pos < ncached && cached[pos] == ids[pos]) pos++;  // 이전 요청과 겹치는 앞부분
     for (; pos < n - 1; pos++) step(ids[pos], pos);
     int t = ids[n - 1];
@@ -221,10 +238,21 @@ int model_generate(const int *ids, int n, const char *heal, int max_new, char *o
             break;
         }
         if (len + tlen[best] >= sizeof text) break;  // stop = max_tokens
+        bool healed = len >= hl;
         t = best;
         memcpy(text + len, tstr[t], tlen[t]);
         len += tlen[t];
         text[len] = '\0';
+        if (healed) {
+            gen[ng++] = t;
+            int keep = repeat_cut(gen, ng);
+            if (keep >= 0) {  // 같은 조각이 REPEAT번 연속: 첫 번째만 남기고 멈춘다
+                for (int i = keep; i < ng; i++) len -= tlen[gen[i]];
+                text[len] = '\0';
+                *stop = "repeat";
+                break;
+            }
+        }
         if (len >= hl && line_done(text + hl)) {
             *stop = "newline";
             break;

@@ -15,6 +15,8 @@ import numpy as np
 
 MAGIC = 0x314D4C53
 MAX_NEW = 32
+REPEAT = 3  # 같은 조각이 3번 연속이면 반복으로 보고 멈춘다 (LOG 14:40 비교)
+MAX_PERIOD = 8  # 반복 조각 최대 길이 (토큰)
 THETA, EPS = 10000.0, 1e-5
 
 
@@ -79,6 +81,11 @@ class NpModel:
         x[:, half:self.rot] = x2 * c + x1 * s
         return x
 
+    def feed(self, tokens: list[int]) -> None:
+        """앞부분 토큰을 KV 캐시에 넣는다 (로짓은 쓰지 않음). TorchModel은 한 번에 묶어 계산한다."""
+        for t in tokens:
+            self.step(t)
+
     def step(self, t: int) -> np.ndarray:
         self.cached.append(t)
         x = self.emb[t]
@@ -99,29 +106,66 @@ class NpModel:
         self.pos += 1
         return self.out @ self.ln(x, *self.lnf)
 
-    def generate(self, ids: list[int], heal: str = "") -> str:
+    def generate(self, ids: list[int], heal: str = "", repeat: int = REPEAT) -> str:
         """탐욕적 생성. heal이 있으면 생성 결과가 heal로 시작하도록 앞 토큰들을 제한하고, heal은 잘라서 돌려준다.
-        글자가 나온 뒤 줄바꿈이 나오면 멈춘다 (완성은 한 줄)."""
+        글자가 나온 뒤 줄바꿈이 나오면 멈춘다 (완성은 한 줄).
+        repeat: 힐링이 끝난 뒤 생성한 토큰의 끝이 같은 조각을 repeat번 연속 반복하면 멈추고 첫 번째만 남긴다 (0이면 끔).
+        멈춘 이유는 self.last_stop (펌웨어 응답의 stop과 같은 값)."""
+        self.last_stop = "empty_input"
         if not ids:
             return ""
-        for t in ids[self.rewind(ids):-1]:
-            self.step(t)
+        self.feed(ids[self.rewind(ids):-1])
         heal_b = heal.encode()
-        t, text = ids[-1], b""
+        t, text, gen = ids[-1], b"", []  # gen: 힐링이 끝난 뒤 생성한 토큰
+        # 분석용 기록 (생성 결과에는 영향 없음): 힐링이 끝난 뒤 토큰마다 (바이트, 그 토큰의 확률),
+        # 힐링 단계 토큰이 heal을 넘어 덧붙인 바이트
+        self.last_post, self.last_heal_extra = [], b""
+        self.last_stop = "max_tokens"
         for _ in range(MAX_NEW):
-            logits = self.step(t)
+            raw = self.step(t)
+            logits = raw
             if len(text) < len(heal_b):
                 rest = heal_b[len(text):]
                 ok = np.array([s != b"" and (s.startswith(rest) or rest.startswith(s)) for s in self.strs])
-                logits = np.where(ok, logits, -np.inf)
+                logits = np.where(ok, raw, -np.inf)
             t = int(logits.argmax())
             if t == self.eos:
+                self.last_stop = "eos"
                 break
+            healed = len(text) >= len(heal_b)
             text += self.strs[t]
+            if not healed and len(text) >= len(heal_b):
+                self.last_heal_extra = text[len(heal_b):]
+            if healed:
+                e = np.exp(raw - raw.max())
+                self.last_post.append((self.strs[t], float(e[t] / e.sum())))
+                gen.append(t)
+                keep = repeat_cut(gen, repeat)
+                if keep is not None:
+                    text = text[:len(text) - sum(len(self.strs[g]) for g in gen[keep:])]
+                    del self.last_post[keep:]
+                    self.last_stop = "repeat"
+                    break
             body = text[len(heal_b):]
             if body.strip() and b"\n" in body.lstrip():
+                self.last_stop = "newline"
                 break
-        return text[len(heal_b):].decode(errors="replace") if text.startswith(heal_b) else ""
+        if not text.startswith(heal_b):
+            self.last_stop = "heal_mismatch"
+            return ""
+        return text[len(heal_b):].decode(errors="replace")
+
+
+def repeat_cut(gen: list[int], repeat: int, max_period: int = MAX_PERIOD) -> int | None:
+    """gen 끝이 길이 p(1~max_period)인 조각을 repeat번 연속 반복하면, 첫 번째 조각까지만 남길 길이를 돌려준다.
+    예: [a, b, a, b, a, b] (p=2, 3번) → 2. 반복이 아니면 None. 펌웨어 model.c의 repeat_cut과 같은 규칙."""
+    if repeat < 2:
+        return None
+    for p in range(1, max_period + 1):
+        n = p * repeat
+        if len(gen) >= n and all(gen[-n + i] == gen[-n + i % p] for i in range(n)):
+            return len(gen) - n + p
+    return None
 
 
 def encode(ids: list[int], decode, remap: dict) -> tuple[list[int], str]:
@@ -133,3 +177,7 @@ def encode(ids: list[int], decode, remap: dict) -> tuple[list[int], str]:
     if len(ids) > 1:
         ids, heal = ids[:-1], decode(ids[-1:])
     return [remap[t] for t in ids if t in remap], heal
+
+
+assert repeat_cut([1, 2, 1, 2, 1, 2], 3) == 2 and repeat_cut([5, 5, 5], 3) == 1 and repeat_cut([9, 1, 2, 1, 2], 3) is None
+assert repeat_cut([9, 1, 2, 3, 1, 2, 3, 1, 2, 3], 3) == 4 and repeat_cut([1, 1, 1], 0) is None
