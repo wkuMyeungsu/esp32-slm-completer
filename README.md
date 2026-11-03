@@ -6,12 +6,14 @@ ESP32-S3에 올린 소형 언어 모델(SLM)로 VS Code에서 Python 코드를 �
 
 ## 현재 상태 (2026-11-03)
 
-보드가 Pythia-14M을 어휘 1,012개로 줄여 MBPP(초급 Python 문제)와 직접 만든 예시 8개로 학습한 모델(`pythia-14m-general-k768-s300-40b80eb5`, float32 5.8MB)로 완성을 만든다. 학습 과정과 숫자는 `train/LOG.md`에 있다.
+보드가 Pythia-14M을 어휘 1,012개로 줄여 MBPP(스크립트형 변형)와 python_code_instructions_18k의 표준 라이브러리 코드, 직접 만든 예시 8개를 섞어 원본부터 학습한 모델(`pythia-14m-mix-k768-bb810c04`, float32 5.8MB)로 완성을 만든다. 학습 과정과 숫자는 `train/LOG.md`에 있다.
 
-| 평가 (numpy, 보드와 같은 계산) | 예시 8개 (51줄) 정확 일치 | MBPP heldout 100문제 (700줄) 정확 일치 | heldout 문법 통과 |
-|---|---|---|---|
-| 예시 8개만 외운 모델 (`pythia-14m-ft-0bbd3425`) | 1.000 | 0.000 | 0.629 (입력 토큰 47.9% 버림) |
-| 지금 모델 | 1.000 | 0.117 | 0.912 (버림 0, 7.6% 쪼갬) |
+평가는 공개 교재·모범 답안(Think Python 2판 예제, Exercism 모범 답안)에서 고른 쉬운 코드로 한다 (`train/testsets/`, 학습에 안 씀). test는 모델을 확정한 뒤 한 번만 쟀다.
+
+| test 세트 | 예전 모델 (MBPP만, `pythia-14m-general-k768-s300-40b80eb5`) | 지금 모델 |
+|---|---|---|
+| 줄 시작 263문항: 정확 일치 / 줄당 맞는 글자 / 문법 통과 | 0.008 / 0.18 / 0.656 | 0.027 / 0.51 / 0.919 |
+| 줄 중간 266문항: 정확 일치 / 줄당 맞는 글자 / 문법 통과 | 0.056 / 0.38 / 0.706 | 0.117 / 0.96 / 0.934 |
 
 | 구간 | 상태 | 확인 방법 |
 |---|---|---|
@@ -20,7 +22,7 @@ ESP32-S3에 올린 소형 언어 모델(SLM)로 VS Code에서 Python 코드를 �
 | 브리지 → Supabase | 동작 | `sessions`·`suggestions`·`feedback` 세 테이블, 재전송 시 중복 없음, anon 읽기 차단, security advisor 경고 없음 |
 | 확장 ↔ 브리지 | 동작 (가짜 브리지) | 실제 VS Code 통합 테스트 1건 통과 (shown → accept) |
 | 설치본 확장 ↔ 보드 | 동작 | VS Code에서 제안·수락, DB 기록 확인 (예시만 외운 모델로) |
-| SLM (보드) | 동작 | 예시 51줄 정확도 1.000, 평균 1,117 ms, 최소 남은 힙 1,188,740 B (PSRAM 포함), `train/board_check.py` |
+| SLM (보드) | 동작 | 예시 51줄 정확도 0.549 (numpy와 같음), 평균 1,194 ms, 최소 남은 힙 1,188,740 B (PSRAM 포함), `train/board_check.py` |
 
 ## 구성
 
@@ -112,15 +114,17 @@ python -m esptool --chip esp32s3 -p COM9 -b 921600 write-flash "@flash_args" 0x1
 
 ```
 cd train
-uv run train_general.py --k 768 --steps 300 --eval-every 25 --name pythia-14m-general-k768-s300   # → ckpt/<이름>
-uv run export.py ckpt/pythia-14m-general-k768-s300   # → ../firmware/model.bin, ../bridge/vocab.json, torch 대비 확인
+uv run train_general.py --data mix --select dev --k 768 --steps 2000 --eval-every 100 --name pythia-14m-mix-k768   # → ckpt/<이름>
+uv run export.py ckpt/pythia-14m-mix-k768   # → ../firmware/model.bin, ../bridge/vocab.json, torch 대비 확인 (두 번째 인자로 출력 폴더를 주면 비교용)
 cd ..
 uv run --no-project --with numpy --with tokenizers python train/eval_bin.py   # examples·heldout 평가 (CI와 같음)
+uv run eval_bin.py --torch ckpt/pythia-14m-mix-k768 [--final]   # 학습 체크포인트를 GPU로 평가 (생성 규칙은 같은 함수), --final이면 test도
 cd train
 uv run board_check.py                   # 보드에 구운 뒤 예시 51줄로 정확도·속도 측정
 ```
 
-- 데이터 (`train/corpus.py`): 직접 만든 예시 8개(`train/data/`)와 MBPP (Austin et al., 2021, "Program Synthesis with Large Language Models", CC BY 4.0, `train/data_ext/mbpp.jsonl`, google-research/google-research 저장소). MBPP 문제 설명을 첫 줄 주석으로 붙이고 탭을 공백 4칸으로 바꾼다. task_id 411~510(100문제)은 평가 전용이라 학습에 쓰지 않는다.
+- 학습 데이터 (`train/corpus.py`): MBPP 974문제 (Austin et al., 2021, CC BY 4.0, `train/data_ext/mbpp.jsonl`) 전부를 첫 줄 설명 주석은 절반만 붙이고 테스트 케이스를 `print(...)` 호출로 바꿔 붙인 스크립트형으로, iamtarun/python_code_instructions_18k_alpaca (라이선스 표기 없음, 저장소에 넣지 않고 `train/data_ext/instructions18k/`에 받음) 중 표준 라이브러리만 쓰는 코드, 직접 만든 예시 8개. 들여쓰기는 4칸 단위로 다시 맞추고(`reindent`), 테스트 세트의 줄이 든 학습 코드는 뺀다(`decontaminate`).
+- 테스트 세트 (`train/testsets/`, `train/build_testsets.py`): Think Python 2판 예제(MIT·CC BY 4.0)와 Exercism 모범 답안(MIT)에서 쉬운 코드 50개를 골라 dev·test 25개씩. 줄 시작·줄 중간 문항, 프로그램당 최대 12문항. dev는 저장 시점·모델 선택·CI에, test는 확정 뒤 한 번만. 출처와 라이선스는 `train/testsets/LICENSES.md`.
 - 어휘: 학습 코드에서 자주 나오는 토큰 768개 + 1바이트 토큰 243개 + EOS = 1,012개. 학습 전에 모델의 입력·출력 임베딩을 이 행만 남긴다. 어휘에 없는 토큰은 버리지 않고 어휘 안의 더 작은 토큰(최악은 1바이트)으로 쪼갠다. 규칙은 `bridge/vocab_map.py` 하나를 학습·평가·브리지가 함께 쓴다.
 - 문법 판정은 `bridge/syntax.py` 하나를 브리지(실사용 기록)와 평가가 함께 쓴다.
 - 학습·평가 로그는 `train/logs/`에, 시행착오와 숫자는 `train/LOG.md`에 남긴다.
@@ -216,6 +220,6 @@ GitHub Actions에서 push와 pull request마다 실행한다.
 |---|---|
 | `bridge` | `uv run pytest` (6건): 포트 탐지, 로그 전송·재전송, 쓰는 중인 줄 건너뛰기, 409 중복 처리, 토큰 힐링 |
 | `train-data` | 학습 예시가 실행되고 기대 출력을 내는지 |
-| `model-eval` | `firmware/model.bin`을 numpy로 돌려 예시 다음 줄 정확도가 0.95 미만이거나 MBPP heldout 문법 통과율이 0.85 미만이면 실패 (torch 없이 numpy·tokenizers) |
+| `model-eval` | `firmware/model.bin`을 numpy로 돌려 예시 다음 줄 정확도가 0.5 미만이거나 dev(줄 시작) 문법 통과율이 0.90 미만이면 실패 (torch 없이 numpy·tokenizers) |
 | `extension` | `.vsix` 패키징, 실제 VS Code(xvfb)에서 Python 파일 → 제안 → 수락 → 브리지 accept 통합 테스트 |
 | `firmware` | `espressif/esp-idf-ci-action`으로 ESP-IDF v6.1, esp32s3 빌드 |

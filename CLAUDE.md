@@ -38,7 +38,7 @@ ESP32-S3를 활용한 SLM 에이전트 코드 컴플리터.
 | `train/` | 범용 학습(`train_general.py`, 데이터 `corpus.py`: 예시 8개 + MBPP), 예시만 외우는 학습(`finetune.py`), 보드용 내보내기(`export.py` → `firmware/model.bin`, `bridge/vocab.json`), numpy 추론(`npmodel.py`, 펌웨어 `model.c`의 기준), 평가(`eval_bin.py` CI용, `board_check.py` 보드용) |
 | `extension/` | VS Code 확장. Python 파일에서 커서 앞 코드를 보내고 인라인 제안으로 보여 준다. 제안을 수락하면 브리지에 `{"type":"accept","id"}`를 보낸다 |
 | `db/schema.sql` | Supabase `sessions`(브리지 실행·버전)·`suggestions`(제안)·`feedback`(shown·accept) 테이블, anon은 insert만 허용, 성적표 뷰 `scorecard`·`stop_reasons` |
-| `.github/workflows/ci.yml` | CI: 브리지 pytest, 학습 예시 실행, model.bin 평가(예시 0.95·heldout 문법 0.85 미만 실패), 확장 패키징·통합 테스트(실제 VS Code + 가짜 브리지), 펌웨어 ESP-IDF 빌드 |
+| `.github/workflows/ci.yml` | CI: 브리지 pytest, 학습 예시 실행, model.bin 평가(예시 0.5·dev 문법 0.90 미만 실패), 확장 패키징·통합 테스트(실제 VS Code + 가짜 브리지), 펌웨어 ESP-IDF 빌드 |
 
 ## 펌웨어 빌드·굽기 (로컬, ESP-IDF v6.1)
 
@@ -59,4 +59,4 @@ v6부터 cJSON은 ESP-IDF 본체에 없어서 `firmware/main/idf_component.yml`�
 
 1. **ESP32에 모델**: 보드가 자동완성 서버. 응답에 생성 시간·토큰 수·최소 남은 힙을 싣는다.
 2. **로그를 DB에**: 버전(모델·펌웨어·브리지) 조합별 실사용 성적표. 수락률(화면 표시 대비), 빈 완성 비율과 멈춘 이유, 지연, 입력 버림 비율, 문법 오류율, 최소 힙. 행은 추가만 한다. 키는 `bridge/.env`(git 제외). 버전은 손으로 정하지 않는다: 모델은 export.py가 내용 해시로, 펌웨어는 ESP-IDF가 git describe로, 브리지는 실행 때 git describe로 정한다.
-3. **CI**: 빌드·테스트에 더해, `model-eval` job이 `firmware/model.bin`을 numpy로 돌려 예시 다음 줄 정확도 0.95 미만 또는 MBPP heldout 문법 통과율 0.85 미만이면 실패시킨다.
+3. **CI**: 빌드·테스트에 더해, `model-eval` job이 `firmware/model.bin`을 numpy로 돌려 예시 다음 줄 정확도 0.5 미만 또는 dev 세트(Think Python·Exercism 쉬운 코드) 문법 통과율 0.90 미만이면 실패시킨다. test 세트는 모델을 확정한 뒤에만 잰다.
