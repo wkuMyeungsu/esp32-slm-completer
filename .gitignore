@@ -11,3 +11,4 @@ firmware/sdkconfig
 firmware/sdkconfig.old
 firmware/managed_components/
 extension/.vscode-test/
+.agents/

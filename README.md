@@ -41,7 +41,7 @@ ESP32-S3 펌웨어 (ESP-IDF v6.1)
 | `db/schema.sql` | Supabase `events` 테이블, 권한, 성적표 쿼리 |
 | `.github/workflows/ci.yml` | CI |
 | `.mcp.json` | Claude Code용 Supabase MCP 서버 등록 (키 없음) |
-| `CLAUDE.md`, `.agents/memory.txt` | AI 작업용 프로젝트 안내와 진행 로그 |
+| `CLAUDE.md` | AI 작업용 프로젝트 안내 |
 
 ## 통신 형식
 
