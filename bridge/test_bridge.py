@@ -1,8 +1,9 @@
 from types import SimpleNamespace as P
+from urllib.error import HTTPError
 
 import pytest
 
-from bridge import COLS, find_port, flush, log_event
+from bridge import COLS, find_port, flush, log_event, supabase_post
 
 
 def test_find_port_picks_espressif():
@@ -34,6 +35,24 @@ def test_flush_sends_only_new_rows_and_keeps_them_on_failure(tmp_path):
         flush(fail, log, off)
     assert flush(sent.extend, log, off) == 1  # 실패한 줄은 다음에 보냄
     assert [r["req"] for r in sent] == [1, 1, 2]
+
+
+def test_supabase_post_skips_duplicates_one_by_one():
+    db = {1}  # req 1은 이미 들어가 있음
+
+    def insert(rows):
+        if any(r["req"] in db for r in rows):
+            raise HTTPError("u", 409, "conflict", None, None)
+        db.update(r["req"] for r in rows)
+
+    supabase_post([{"req": 1}, {"req": 2}], insert)
+    assert db == {1, 2}
+
+    def down(rows):
+        raise HTTPError("u", 503, "unavailable", None, None)
+
+    with pytest.raises(HTTPError):  # 409가 아닌 실패는 그대로 올려서 오프셋이 안 움직이게
+        supabase_post([{"req": 3}], down)
 
 
 def test_flush_skips_partial_last_line(tmp_path):

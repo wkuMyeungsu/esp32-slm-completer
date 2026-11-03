@@ -6,3 +6,5 @@
 2026-11-03 10:51 폴더 이름 변경: esp32-c-lm → esp32-slm-completer
 2026-11-03 11:00 DB 용도 확정: 모델 버전별 실사용 성적표 (suggest·accept 행 추가, 브리지가 jsonl에 남기고 10초마다 Supabase 전송), 로그 뼈대 작성, Supabase 새 프로젝트 생성 중
 2026-11-03 11:07 ESP-IDF v6.1 설치 완료, 펌웨어(stub) 빌드·굽기 성공, 브리지로 보드 왕복 확인 (지연 2~3ms, heap_min 약 388KB), GitHub push 완료 (wkuMyeungsu/esp32-slm-completer), 첫 CI 통과
+2026-11-03 11:15 Supabase 연동 완료 (project oyfvajzmhrpvrecxcone): events 테이블 생성, anon은 insert만, 브리지 → DB 전송 확인 (3행, 재전송 시 중복 없음)
+2026-11-03 11:19 Supabase 보안 경고 해결: rls_auto_enable() 실행 권한을 PUBLIC·anon·authenticated에서 회수 (자동 RLS는 계속 동작 확인), 저장소 .mcp.json 서버 이름을 esp32-slm-completer로 변경

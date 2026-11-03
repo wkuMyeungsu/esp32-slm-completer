@@ -17,7 +17,9 @@ create table public.events (
 
 alter table public.events enable row level security;
 
--- 공개 키(anon)에는 넣기만 허용
+-- 공개 키(anon)에는 넣기만 허용.
+-- ON CONFLICT(중복 무시)는 select 권한과 읽기 정책이 필요해서 쓰지 않는다.
+-- 중복은 브리지가 409를 받으면 한 행씩 다시 넣으며 건너뛴다 (bridge.py supabase_post).
 grant insert on public.events to anon;
 create policy "anon insert only" on public.events
   for insert to anon with check (true);

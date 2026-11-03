@@ -8,6 +8,7 @@ import os
 import sys
 import threading
 import time
+import urllib.error
 import urllib.request
 import uuid
 from datetime import datetime, timezone
@@ -69,14 +70,29 @@ def load_env(path: Path = HERE / ".env") -> None:
                 os.environ.setdefault(k.strip(), v.strip())
 
 
-def supabase_post(rows: list[dict]) -> None:
+def _insert(rows: list[dict]) -> None:
     req = urllib.request.Request(
-        os.environ["SUPABASE_URL"].rstrip("/") + "/rest/v1/events?on_conflict=session,req,event",
+        os.environ["SUPABASE_URL"].rstrip("/") + "/rest/v1/events",
         data=json.dumps(rows).encode(),
         headers={"apikey": os.environ["SUPABASE_KEY"], "Content-Type": "application/json",
-                 "Prefer": "resolution=ignore-duplicates,return=minimal"},
+                 "Prefer": "return=minimal"},
         method="POST")
     urllib.request.urlopen(req, timeout=10).close()
+
+
+def supabase_post(rows: list[dict], insert=_insert) -> None:
+    """anon은 insert만 가능해서 ON CONFLICT를 못 쓴다. 묶음에 이미 들어간 행이 있으면(409) 한 행씩 넣고 중복은 건너뛴다."""
+    try:
+        insert(rows)
+    except urllib.error.HTTPError as e:
+        if e.code != 409:
+            raise
+        for r in rows:
+            try:
+                insert([r])
+            except urllib.error.HTTPError as e2:
+                if e2.code != 409:
+                    raise
 
 
 def uploader() -> None:
