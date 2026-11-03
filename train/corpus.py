@@ -150,7 +150,13 @@ def instructions18k() -> list[str]:
     저장소에 넣지 않고 data_ext/instructions18k/에 받아 둔다)의 output 코드. 지시문은 절반만 첫 줄 주석으로.
     문법이 맞고 2~60줄, 표준 라이브러리만 쓰는 것만 (flask·numpy·sklearn 등 제외), 같은 내용은 하나만. 들여쓰기는 4칸으로."""
     import pyarrow.parquet as pq
-    path = next((HERE / "data_ext" / "instructions18k").rglob("*.parquet"))
+    folder = HERE / "data_ext" / "instructions18k"
+    path = next(folder.rglob("*.parquet"), None)
+    if path is None:  # 처음이면 받는다 (라이선스 표기가 없어 저장소에는 넣지 않는다)
+        from huggingface_hub import hf_hub_download
+        path = Path(hf_hub_download("iamtarun/python_code_instructions_18k_alpaca",
+                                    "data/train-00000-of-00001-8b6e212f3e1ece96.parquet",
+                                    repo_type="dataset", local_dir=folder))
     t = pq.read_table(path, columns=["instruction", "output"]).to_pylist()
     seen, out = set(), []
     for i, r in enumerate(t):
