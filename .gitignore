@@ -12,3 +12,6 @@ firmware/sdkconfig.old
 firmware/managed_components/
 extension/.vscode-test/
 .agents/
+train/ckpt/
+train/playground/
+train/logs/

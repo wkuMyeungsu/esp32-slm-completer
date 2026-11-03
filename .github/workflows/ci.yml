@@ -10,6 +10,21 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv run pytest -q
 
+  train-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uvx pytest -q train/test_data.py  # 학습 예시가 실행되고 기대 출력을 내는지 (torch 불필요)
+
+  model-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      # 보드에 굽는 firmware/model.bin을 numpy로 돌려 예시 다음 줄 정확도·MBPP heldout 문법 통과율이 기준 미만이면 실패 (torch 불필요)
+      - run: uv run --no-project --with numpy --with tokenizers python train/eval_bin.py --min-examples 0.95 --min-heldout-syntax 0.85
+
   extension:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: extension } }
