@@ -1,0 +1,1103 @@
+#### exercism/concept/card-games
+"""Functions for tracking poker hands and assorted card tasks.
+
+Python list documentation: https://docs.python.org/3/tutorial/datastructures.html
+"""
+
+
+def get_rounds(number):
+    """Create a list containing the current and next two round numbers.
+
+    Parameters:
+        number (int): The current round number.
+
+    Returns:
+        list: The current round number and the two that follow.
+    """
+
+    return [number, number + 1, number + 2]
+
+
+def concatenate_rounds(rounds_1, rounds_2):
+    """Concatenate two lists of round numbers.
+
+    Parameters:
+        rounds_1 (list): The first rounds played.
+        rounds_2 (list): The second group of rounds played.
+
+    Returns:
+        list:  All rounds played.
+    """
+
+    return rounds_1 + rounds_2
+
+
+def list_contains_round(rounds, number):
+    """Check if the list of rounds contains the specified number.
+
+    Parameters:
+        rounds (list): The rounds played.
+        number (int): The round number.
+
+    Returns:
+        bool: Was the round played?
+    """
+
+    return number in rounds
+
+
+def card_average(hand):
+    """Calculate and returns the average card value from the list.
+
+    Parameters:
+        hand (list): The cards in the hand.
+
+    Returns:
+        float: The average value of the cards in the hand.
+    """
+
+    return sum(hand) / len(hand)
+
+
+def approx_average_is_average(hand):
+    """Return if the (average of first and last card values) OR ('middle' card) == calculated average.
+
+    Parameters:
+        hand (list): The cards in the hand.
+
+    Returns:
+        bool: Does one of the approximate averages equal the `true average`?
+    """
+
+    real_average = card_average(hand)
+
+    if card_average([hand[0], hand[-1]]) == real_average:
+        is_same = True
+    elif hand[len(hand) // 2] == real_average:
+        is_same = True
+    else:
+        is_same = False
+
+    return is_same
+
+
+def average_even_is_average_odd(hand):
+    """Return if the (average of even indexed card values) == (average of odd indexed card values).
+
+    Parameters:
+        hand (list): The cards in the hand.
+
+    Returns:
+        bool: Are the even and odd averages equal?
+    """
+
+    return card_average(hand[::2]) == card_average(hand[1::2])
+
+
+def maybe_double_last(hand):
+    """Multiply a Jack card value in the last index position by 2.
+
+    Parameters:
+        hand (list): The cards in the hand.
+
+    Returns:
+        list: The hand with Jacks (if present) value doubled.
+    """
+
+    if hand[-1] == 11:
+        hand[-1] *= 2
+
+    return hand
+#### exercism/concept/chaitanas-colossal-coaster
+"""Functions to manage and organize queues at Chaitana's roller coaster."""
+
+
+def add_me_to_the_queue(express_queue, normal_queue, ticket_type, person_name):
+    """Add a person to the 'express' or 'normal' queue depending on the ticket number.
+
+    Parameters:
+        express_queue (list): The names in the Fast-track queue.
+        normal_queue (list): The names in the normal queue.
+        ticket_type (int): Type of ticket. 1 = express, 0 = normal.
+        person_name (str): The name of person to add to a queue.
+
+    Returns:
+        list: The (updated) queue the name was added to.
+    """
+
+    result = express_queue if ticket_type == 1 else normal_queue
+    result.append(person_name)
+    return result
+
+
+def find_my_friend(queue, friend_name):
+    """Search the queue for a name and return their queue position (index).
+
+    Parameters:
+        queue (list): The names in the queue.
+        friend_name (str): The name of friend to find.
+
+    Returns:
+        int: The index at which the friends name was found.
+    """
+
+    return queue.index(friend_name)
+
+
+def add_me_with_my_friends(queue, index, person_name):
+    """Insert the late arrival's name at a specific index of the queue.
+
+    Parameters:
+        queue (list): The names in the queue.
+        index (int): The index at which to add the new name.
+        person_name (str): The name to add.
+
+    Returns:
+        list: The queue updated with new name.
+    """
+
+    queue.insert(index, person_name)
+    return queue
+
+
+def remove_the_mean_person(queue, person_name):
+    """Remove the mean person from the queue by the provided name.
+
+    Parameters:
+        queue (list): The names in the queue.
+        person_name (str): The name of mean person.
+
+    Returns:
+        list: The queue updated with the mean persons name removed.
+    """
+
+    queue.remove(person_name)
+    return queue
+
+
+def how_many_namefellows(queue, person_name):
+    """Count how many times the provided name appears in the queue.
+
+    Parameters:
+        queue (list): The names in the queue.
+        person_name (str): The name you wish to count or track.
+
+    Returns:
+        int: The number of times the name appears in the queue.
+    """
+
+    return queue.count(person_name)
+
+
+def remove_the_last_person(queue):
+    """Remove the person in the last index from the queue and return their name.
+
+    Parameters:
+        queue (list): The names in the queue.
+
+    Returns:
+        str: The name that has been removed from the end of the queue.
+    """
+
+    return queue.pop()
+
+
+def sorted_names(queue):
+    """Sort the names in the queue in alphabetical order and return the result.
+
+    Parameters:
+        queue (list): The names in the queue.
+
+    Returns:
+        list: A copy of the queue in alphabetical order.
+    """
+
+    new_queue = queue[:]
+    new_queue.sort()
+    return new_queue
+#### exercism/concept/currency-exchange
+"""Functions for calculating steps in exchaning currency.
+
+Python numbers documentation: https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex
+
+Overview of exchanging currency when travelling: https://www.compareremit.com/money-transfer-tips/guide-to-exchanging-currency-for-overseas-travel/
+"""
+
+def exchange_money(budget, exchange_rate):
+    """Calculate estimated value after exchange.
+
+    Parameters:
+        budget (float): Tthe amount of money you are planning to exchange.
+        exchange_rate (float): The unit value of the foreign currency.
+
+    Returns:
+        float: The exchanged value of the foreign currency you can receive.
+
+    Examples:
+        >>> exchange_money(127.5, 1.2)
+        106.25
+
+        >>> exchange_money(200, 1.10)
+        181.82
+
+    This function calculates and returns the (estimated) value of the exchanged currency.
+
+    """
+
+    return budget / exchange_rate
+
+
+def get_change(budget, exchanging_value):
+    """Calculate currency left after an exchange.
+
+    Parameters:
+        budget (float): The amount of money you own.
+        exchanging_value (float): The amount of your money you want to exchange now.
+
+    Returns:
+        float: The amount left of your starting currency after the exchange
+
+    Examples:
+        >>> get_change(127.5, 120.0)
+        7.5
+
+        >>> get_change(300.75, 150.25)
+        150.50
+
+    This function calcultes and returns the amount of money left over from the budget
+    after an exchange.
+
+    """
+
+    return budget - exchanging_value
+
+
+def get_value_of_bills(denomination, number_of_bills):
+    """Calculate the total value of currency at current denomination.
+
+    Parameters:
+        denomination (int): The value of a single unit (bill).
+        number_of_bills (int): The total number of units (bills).
+
+    Returns:
+        int: Calculated value of the units (bills).
+
+    Examples:
+        >>> get_value_of_bills(5, 128)
+        640
+
+        >>> get_value_of_bills(15.13, 16)
+        242
+
+    This function calculates and returns the total value of the bills (excluding fractionaal amounts).
+
+    """
+
+    return denomination * number_of_bills
+
+
+def get_number_of_bills(amount, denomination):
+    """Calculate the number of currency units (bills) within the amount.
+
+    Parameters:
+        amount (float): The total starting value.
+        denomination (int): The value of a single unit (bill).
+
+    Returns:
+        int: The number of units (bills) that can be obtained from the amount.
+
+    Examples:
+        >>> get_number_of_bills(127.5, 5)
+        25
+
+        >>> get_number_of_bills(35.16, 10)
+        3
+
+    This function calcluates and returns the number pf currency units (bills) that can
+    be obtained from the given amount. Whole bills only - no fractioal amounts.
+
+    """
+
+    return int(amount) // denomination
+
+
+def get_leftover_of_bills(amount, denomination):
+    """Calculate leftover amount after exchanging into bills.
+
+    Parameters:
+        amount (float): The total starting value.
+        denomination (int): The value of a single unit (bill).
+
+    Returns:
+        float: The amount that is "leftover", given the current denomination.
+
+    Examples:
+        >>> get_leftover_of_bills(127.5, 20)
+        7.5
+
+        >>> get_leftover_of_bills(153.2, 10)
+        3.20
+
+    This function calculates and returns the leftover amount that cannot be
+    returned from starting amount, due to the currency denomination.
+
+    """
+
+    return amount % denomination
+
+
+def exchangeable_value(budget, exchange_rate, spread, denomination):
+    """Calculate the maximum value of the new currency.
+
+    Parameters:
+        budget (float): The amount of your money you are planning to exchange.
+        exchange_rate (float): The unit value of the foreign currency.
+        spread (int): The percentage that is taken as an exchange fee.
+        denomination (int) The value of a single unit (bill).
+
+    Returns:
+        int: The maximum value you can get in the new currency.
+
+    Examples:
+        >>> exchangeable_value(127.25, 1.20, 10, 20)
+        80
+
+        >>> exchangeable_value(127.25, 1.20, 10, 5)
+        95
+
+    Note:
+        The currency denomination is a whole number and cannot be sub-divided.
+
+    This function calculates and returns the maximum value of the new currency after
+    determining the exchange rate plus the spread.
+    """
+
+    exchange_fee = (exchange_rate / 100) * spread
+    exchange_value = exchange_money(budget, exchange_rate + exchange_fee)
+    number_of_bills = get_number_of_bills(exchange_value, denomination)
+    value_of_bills = get_value_of_bills(denomination, number_of_bills)
+
+    return value_of_bills
+#### exercism/concept/inventory-management
+"""Functions to keep track and alter inventory."""
+
+
+def create_inventory(items):
+    """Create a dict that tracks the amount (count) of each element on the `items` list.
+
+    Parameters:
+        items (list): Items to create an inventory from.
+
+    Returns:
+        dict: The inventory dictionary.
+    """
+
+    inventory = {}
+    add_items(inventory, items)
+    return inventory
+
+
+def add_items(inventory, items):
+    """Add or increment items in inventory using elements from the items `list`.
+
+    Parameters:
+        inventory (dict): Dictionary of existing inventory.
+        items (list): List of items to update the inventory with.
+
+    Returns:
+        dict: The inventory updated with the new items.
+    """
+
+    for item in items:
+        inventory.setdefault(item, 0)
+        inventory[item] += 1
+    return inventory
+
+
+def decrement_items(inventory, items):
+    """Decrement items in inventory using elements from the `items` list.
+
+    Parameters:
+        inventory (dict): Inventory dictionary.
+        items (list): List of items to decrement from the inventory.
+
+    Returns:
+        dict: Updated inventory with items decremented.
+    """
+
+    for item in items:
+        if item in inventory:
+            inventory[item] = max(inventory[item] - 1, 0)
+    return inventory
+
+
+def remove_item(inventory, item):
+    """Remove item from inventory if it matches `item` string.
+
+    Parameters:
+        inventory (dict): Inventory dictionary.
+        item (str): Item to remove from the inventory.
+
+    Returns:
+        dict: Updated inventory with item removed. Current inventory if item does not match.
+    """
+
+    if item in inventory:
+        inventory.pop(item)
+    return inventory
+
+
+def list_inventory(inventory):
+    """Create a list containing only available (item_name, item_count > 0) pairs in inventory.
+
+    Parameters:
+        inventory (dict): An inventory dictionary.
+
+    Returns:
+        list[tuple]: List of key, value tuples from the inventory dictionary.
+    """
+
+    output = []
+    for item in sorted(inventory.items()):
+        if item[1] > 0:
+            output.append(item)
+    return output
+#### exercism/concept/mecha-munch-management
+"""Functions to manage a users shopping cart items."""
+
+
+def add_item(current_cart, items_to_add):
+    """Add items to shopping cart.
+
+    Parameters:
+        current_cart (dict): The current shopping cart.
+        items_to_add (iterable): The items to add to the cart.
+
+    Returns:
+        dict: The updated user cart dictionary.
+    """
+
+    for item in items_to_add:
+        current_cart.setdefault(item, 0)
+        current_cart[item] += 1
+
+    return current_cart
+
+
+def read_notes(notes):
+    """Create user cart from an iterable notes entry.
+
+    Parameters:
+        notes (iterable): Group of items to add to cart.
+
+    Returns:
+        dict: A user shopping cart dictionary.
+    """
+
+    return dict.fromkeys(notes, 1)
+
+
+def update_recipes(ideas, recipe_updates):
+    """Update the recipe ideas dictionary.
+
+    Parameters:
+        ideas (dict): The "recipe ideas" dict.
+        recipe_updates (iterable): Updates for the ideas section.
+
+    Returns:
+        dict: The updated "recipe ideas" dict.
+    """
+
+    ideas.update(recipe_updates)
+    return ideas
+
+
+def sort_entries(cart):
+    """Sort a user's shopping cart in alphabetical order.
+
+    Parameters:
+        cart (dict): A user's shopping cart dictionary.
+
+    Returns:
+        dict: A user's shopping cart sorted in alphabetical order.
+    """
+
+    return dict(sorted(cart.items()))
+
+
+def send_to_store(cart, aisle_mapping):
+    """Combine user's order to aisle and refrigeration information.
+
+    Parameters:
+        cart (dict): The user's shopping cart dictionary.
+        aisle_mapping (dict): The aisle and refrigeration information dictionary.
+
+    Returns:
+        dict: The fulfillment dictionary ready to send to store.
+    """
+
+    fulfillment_cart = {}
+
+    for key in cart.keys():
+        fulfillment_cart[key] = [cart[key]] + aisle_mapping[key]
+
+    return dict(sorted(fulfillment_cart.items(), reverse=True))
+
+
+def update_store_inventory(fulfillment_cart, store_inventory):
+    """Update store inventory levels with user order.
+
+    Parameters:
+        fulfillment cart (dict): The fulfillment cart to send to store.
+        store_inventory (dict): The stores available inventory.
+
+    Returns:
+        dict: The store_inventory updated.
+    """
+
+    for key, values in fulfillment_cart.items():
+        store_inventory[key][0] = store_inventory[key][0] - values[0]
+        if store_inventory[key][0] == 0:
+            store_inventory[key][0] = 'Out of Stock'
+
+    return store_inventory
+#### exercism/concept/restaurant-rozalynn
+def new_seating_chart(size=22):
+    """Create a new seating chart.
+
+    :param size: int - number if seats in the seating chart.
+    :return: dict - with number of seats specified, and placeholder values.
+    """
+
+    return {number: None for number in range(1, size + 1)}
+
+
+def arrange_reservations(guests=None):
+    """Assign guests to seats.
+
+    :param guest_list: list - list of guest names for reservations.
+    :return: dict - Default sized dictionary with guests assigned seats,
+             and placeholders for empty seats.
+    """
+
+    seats = new_seating_chart()
+
+    if guests:
+        for seat_number in range(1, len(guests)):
+            seats[seat_number] = guests[seat_number]
+    return seats
+
+
+def find_all_available_seats(seats):
+    """Find and return seat numbers that are unassigned.
+
+    :param seats: dict - seating chart.
+    :return: list - list of seat numbers available for reserving..
+    """
+
+    available = []
+    for seat_num, value in seats.items():
+        if value is None:
+            available.append(seat_num)
+    return available
+
+
+def current_empty_seat_capacity(seats):
+    """Find the number of seats that are currently empty.
+
+    :param seats: dict - dictionary of reserved seats.
+    :return: int - number of seats empty.
+    """
+
+    count = 0
+    for value in seats.values():
+        if value is None:
+            count += 1
+    return count
+
+
+def accommodate_waiting_guests(seats, guests):
+    """Asses if guest can be accommodated.  Update seating if they can be.
+
+    :param seats: dict - seating chart dictionary.
+    :param guests: list - walk-in guests
+    :return: dict - updated seating chart with available spaces filled.
+    """
+
+    curr_empty_seats = current_empty_seat_capacity(seats)
+    empty_seat_list = find_all_available_seats(seats)
+
+    if len(guests) <= curr_empty_seats:
+        for index, _ in enumerate(guests):
+            seats[empty_seat_list[index]] = guests[index]
+
+    return seats
+
+
+def empty_seats(seats, seat_numbers):
+    """Empty listed seats of their previous reservations.
+
+    :param seats: dict - seating chart dictionary.
+    :param seat_numbers: list - list of seat numbers to free up or empty.
+    :return: updated seating chart dictionary.
+    """
+
+    for seat in seat_numbers:
+        seats[seat] = None
+
+    return seats
+#### exercism/practice/anagram
+def find_anagrams(word, candidates):
+    return [candidate
+            for candidate in candidates
+            if _letters(candidate) == _letters(word)
+            if candidate.lower() != word.lower()]
+
+
+def _letters(word):
+    return sorted(word.lower())
+#### exercism/practice/bob
+def response(hey_bob):
+    hey_bob = hey_bob.strip()
+
+    if _is_silence(hey_bob):
+        return 'Fine. Be that way!'
+    if _is_shouting(hey_bob):
+        if _is_question(hey_bob):
+            return "Calm down, I know what I'm doing!"
+        else:
+            return 'Whoa, chill out!'
+    elif _is_question(hey_bob):
+        return 'Sure.'
+    else:
+        return 'Whatever.'
+
+
+def _is_silence(hey_bob):
+    return hey_bob == ''
+
+
+def _is_shouting(hey_bob):
+    return hey_bob.isupper()
+
+
+def _is_question(hey_bob):
+    return hey_bob.endswith('?')
+#### exercism/practice/etl
+def transform(legacy_data):
+    return {
+        letter.lower(): points
+        for points, letters in legacy_data.items()
+        for letter in letters
+    }
+#### exercism/practice/flatten-array
+def is_iterable(thing):
+    try:
+        iter(thing)
+    except TypeError:
+        return False
+    else:
+        return True
+
+
+def flatten(iterable):
+    """Flatten a list of lists."""
+    flattened = []
+    for item in iterable:
+        if is_iterable(item) and not isinstance(item, (str, bytes)):
+            flattened += flatten(item)
+        elif item is not None:
+            flattened.append(item)
+    return flattened
+#### exercism/practice/grains
+def square(number):
+    if number == 0:
+        raise ValueError('square must be between 1 and 64')
+    elif number < 0:
+        raise ValueError('square must be between 1 and 64')
+    elif number > 64:
+        raise ValueError('square must be between 1 and 64')
+
+    return 2 ** (number - 1)
+
+
+def total():
+    return (2 ** 64) - 1
+#### exercism/practice/house
+PARTS = [('lay in', 'the house that Jack built.'),
+         ('ate', 'the malt'),
+         ('killed', 'the rat'),
+         ('worried', 'the cat'),
+         ('tossed', 'the dog'),
+         ('milked', 'the cow with the crumpled horn'),
+         ('kissed', 'the maiden all forlorn'),
+         ('married', 'the man all tattered and torn'),
+         ('woke', 'the priest all shaven and shorn'),
+         ('kept', 'the rooster that crowed in the morn'),
+         ('belonged to', 'the farmer sowing his corn'),
+         ('', 'the horse and the hound and the horn')]
+
+
+def verse(verse_num):
+    verse = [f'This is {PARTS[verse_num][1]}']
+    verse.extend(['that {0} {1}'.format(*PARTS[idx])
+              for idx in range(verse_num - 1, -1, -1)])
+    return ' '.join(verse)
+
+
+def recite(start_verse, end_verse):
+    return [verse(verse_num) for verse_num in range(start_verse-1, end_verse)]
+#### exercism/practice/isbn-verifier
+def is_valid(isbn):
+    chars = list(isbn.replace('-', ''))
+    if chars and chars[-1] == 'X':
+        chars[-1] = '10'
+    if not len(chars) == 10 or not all(char.isdigit() for char in chars):
+        return False
+    indices = list(range(10, 0, -1))
+    return sum(int(char) * idx for char, idx in zip(chars, indices)) % 11 == 0
+#### exercism/practice/line-up
+def line_up(name, number):
+    suffix = get_suffix(number)
+    return f"{name}, you are the {number}{suffix} customer we serve today. Thank you!"
+
+
+def get_suffix(number):
+    if 11 <= number % 100 <= 13:
+        return "th"
+
+    mod_10 = number % 10
+
+    if mod_10 == 1:
+        return "st"
+    if mod_10 == 2:
+        return "nd"
+    if mod_10 == 3:
+        return "rd"
+
+    return "th"
+#### exercism/practice/list-ops
+def append(list1, list2):
+    return concat([list1, list2])
+
+
+def concat(lists):
+    return [element for list in lists for element in list]
+
+
+def filter(function, list):
+    return [item for item in list if function(item)]
+
+
+def length(list):
+    return sum(1 for _ in list)
+
+
+def map(function, list):
+    return [function(element) for element in list]
+
+
+def foldl(function, list, initial):
+    if len(list) == 0:
+        return initial
+    else:
+        return foldl(function, list[1:], function(initial, list[0]))
+
+
+def foldr(function, list, initial):
+    if len(list) == 0:
+        return initial
+    else:
+        return function(foldr(function, list[1:], initial), list[0])
+
+
+def reverse(list):
+    return list[::-1]
+#### exercism/practice/raindrops
+def convert(number):
+    """
+    Converts a number to a string according to the raindrop sounds.
+    """
+
+    result = ''
+    if number % 3 == 0:
+        result += 'Pling'
+    if number % 5 == 0:
+        result += 'Plang'
+    if number % 7 == 0:
+        result += 'Plong'
+
+    if not result:
+        result = str(number)
+    return result
+#### exercism/practice/resistor-color-trio
+COLORS = [
+        'black',
+        'brown',
+        'red',
+        'orange',
+        'yellow',
+        'green',
+        'blue',
+        'violet',
+        'grey',
+        'white'
+]
+
+
+def label(colors):
+    value = 10 * COLORS.index(colors[0]) + COLORS.index(colors[1])
+    value *= 10 ** COLORS.index(colors[2])
+    label = str(value)
+
+    if len(label) < 4 :
+        unit = 'ohms'
+    elif len(label) < 7:
+        label = str(value//1000)
+        unit = 'kiloohms'
+    elif len(label) <= 8 :
+        label = str(value//1000000)
+        unit = 'megaohms'
+    elif len(label) >= 9:
+        label = str(value//1000000000)
+        unit = 'gigaohms'
+
+    return f'{value if value < 1000 else label} {unit}'
+#### exercism/practice/secret-handshake
+GESTURES = ['jump', 'close your eyes', 'double blink', 'wink']
+
+
+def commands(binary_str):
+    reverse, *bits = [digit == '1' for digit in binary_str]
+    actions = [gesture for gesture, bit in zip(GESTURES, bits) if bit]
+    return actions if reverse else actions[::-1]
+#### exercism/practice/triangle
+def valid(sides):
+    return sum(sorted(sides)[:2]) >= sorted(sides)[2] and all(
+        side > 0 for side in sides
+    )
+
+
+def equilateral(sides):
+    return valid(sides) and all(sides[0] == side for side in sides)
+
+
+def isosceles(sides):
+    return valid(sides) and any(
+        side_1 == side_2 for side_1, side_2 in zip(sorted(sides), sorted(sides)[1:])
+    )
+
+
+def scalene(sides):
+    return valid(sides) and not isosceles(sides)
+#### thinkpython2/code/breakfast.py
+"""
+
+If I leave my house at 6:52 am and run 1 mile at an easy pace
+(8:15 per mile), then 3 miles at tempo (7:12 per mile) and
+1 mile at easy pace again, what time do I get home for breakfast?
+
+"""
+
+easy_min = 8 + 15 / 60
+tempo_min = 7 + 12 / 60
+
+total_min = 2 * easy_min + 3 * tempo_min
+print('Total minutes:', total_min)
+
+time_hour = 6 + 52 / 60 + total_min / 60
+print('Time in hours', time_hour)
+
+hours = 7
+minutes = (time_hour - hours) * 60
+print('Time in hours and minutes', hours, minutes)
+#### thinkpython2/code/cartalk3.py
+def str_fill(i, n):
+    """Returns i as a string with at least n digits.
+
+    i: int
+    n: int length
+
+    returns: string
+    """
+    return str(i).zfill(n)
+
+
+def are_reversed(i, j):
+    """Checks if i and j are the reverse of each other.
+
+    i: int
+    j: int
+
+    returns:bool
+    """
+    return str_fill(i, 2) == str_fill(j, 2)[::-1]
+
+
+def num_instances(diff, flag=False):
+    """Counts the number of palindromic ages.
+
+    Returns the number of times the mother and daughter have
+    palindromic ages in their lives, given the difference in age.
+
+    diff: int difference in ages
+    flag: bool, if True, prints the details
+    """
+    daughter = 0
+    count = 0
+    while True:
+        mother = daughter + diff
+
+        # assuming that mother and daughter don't have the same birthday,
+        # they have two chances per year to have palindromic ages.
+        if are_reversed(daughter, mother) or are_reversed(daughter, mother+1):
+            count = count + 1
+            if flag:
+                print(daughter, mother)
+        if mother > 120:
+            break
+        daughter = daughter + 1
+    return count
+
+
+def check_diffs():
+    """Finds age differences that satisfy the problem.
+
+    Enumerates the possible differences in age between mother
+    and daughter, and for each difference, counts the number of times
+    over their lives they will have ages that are the reverse of
+    each other.
+    """
+    diff = 10
+    while diff < 70:
+        n = num_instances(diff)
+        if n > 0:
+            print(diff, n)
+        diff = diff + 1
+
+print('diff  #instances')
+check_diffs()
+
+print()
+print('daughter  mother')
+num_instances(18, True)
+#### thinkpython2/code/has_duplicates.py
+def has_duplicates(t):
+    """Checks whether any element appears more than once in a sequence.
+
+    Simple version using a for loop.
+
+    t: sequence
+    """
+    d = {}
+    for x in t:
+        if x in d:
+            return True
+        d[x] = True
+    return False
+
+
+def has_duplicates2(t):
+    """Checks whether any element appears more than once in a sequence.
+
+    Faster version using a set.
+
+    t: sequence
+    """
+    return len(set(t)) < len(t)
+
+
+if __name__ == '__main__':
+    t = [1, 2, 3]
+    print(has_duplicates(t))
+    t.append(1)
+    print(has_duplicates(t))
+
+    t = [1, 2, 3]
+    print(has_duplicates2(t))
+    t.append(1)
+    print(has_duplicates2(t))
+#### thinkpython2/code/invert_dict.py
+def invert_dict(d):
+    """Inverts a dictionary, returning a map from val to a list of keys.
+
+    If the mapping key->val appears in d, then in the new dictionary
+    val maps to a list that includes key.
+
+    d: dict
+
+    Returns: dict
+    """
+    inverse = {}
+    for key in d:
+        val = d[key]
+        inverse.setdefault(val, []).append(key)
+    return inverse
+
+
+if __name__ == '__main__':
+    d = dict(a=1, b=2, c=3, z=1)
+    inverse = invert_dict(d)
+    for val in inverse:
+        keys = inverse[val]
+        print(val, keys)
+#### thinkpython2/code/pace_calc.py
+"""
+
+If you run a 10 kilometer race in 43 minutes 30 seconds, what is your
+average time per mile? What is your average speed in miles per hour?
+(Hint: there are 1.61 kilometers in a mile).
+
+"""
+
+minutes = 43.5
+hours = minutes / 60
+
+km_per_mile = 1.61
+km = 10
+miles = km / km_per_mile
+
+pace = minutes / miles
+mph = miles / hours
+
+print('Pace in minutes per mile:', pace)
+print('Average speed in mph:', mph)
+#### thinkpython2/code/rotate.py
+def rotate_letter(letter, n):
+    """Rotates a letter by n places.  Does not change other chars.
+
+    letter: single-letter string
+    n: int
+
+    Returns: single-letter string
+    """
+    if letter.isupper():
+        start = ord('A')
+    elif letter.islower():
+        start = ord('a')
+    else:
+        return letter
+
+    c = ord(letter) - start
+    i = (c + n) % 26 + start
+    return chr(i)
+
+
+def rotate_word(word, n):
+    """Rotates a word by n places.
+
+    word: string
+    n: integer
+
+    Returns: string
+    """
+    res = ''
+    for letter in word:
+        res += rotate_letter(letter, n)
+    return res
+
+
+if __name__ == '__main__':
+    print(rotate_word('cheer', 7))
+    print(rotate_word('melon', -10))
+    print(rotate_word('sleep', 9))

@@ -1,0 +1,1122 @@
+#### exercism/concept/black-jack
+"""Functions to help play and score a game of blackjack.
+
+How to play blackjack:    https://bicyclecards.com/how-to-play/blackjack/
+"Standard" playing cards: https://en.wikipedia.org/wiki/Standard_52-card_deck
+"""
+
+
+def value_of_card(card):
+    """Determine the scoring value of a card.
+
+    Parameters:
+        card (str): The given card.
+
+    Returns:
+        int: The value of a given card.  See below for values.
+
+        1.  'J', 'Q', or 'K' (otherwise known as "face cards") = 10
+        2.  'A' (ace card) = 1
+        3.  '2' - '10' = numerical value.
+    """
+
+    if card in ('JQK'):
+        value = 10
+
+    elif card == 'A':
+        value = 1
+
+    else:
+        value = int(card)
+
+    return value
+
+
+def higher_card(card_one, card_two):
+    """Determine which card has a higher value in the hand.
+
+    Parameters:
+        card_one (str): First card dealt in the hand.  See below for values.
+        card_two (str): Second card dealt in the hand. See below for values.
+
+        1.  'J', 'Q', or 'K' (otherwise known as "face cards") = 10
+        2.  'A' (ace card) = 1
+        3.  '2' - '10' = numerical value.
+
+    Returns:
+        str or tuple: The resulting tuple contains both cards if they are of equal value.
+    """
+
+    card_one_value = value_of_card(card_one)
+    card_two_value = value_of_card(card_two)
+
+    if card_one_value == card_two_value:
+        result = card_one, card_two
+
+    elif card_one_value > card_two_value:
+        result = card_one
+
+    else:
+        result = card_two
+
+    return result
+
+
+def value_of_ace(card_one, card_two):
+    """Calculate the most advantageous value for an upcoming ace card.
+
+    Parameters:
+        card_one (str): First card dealt in the hand.  See below for values.
+        card_two (str): Second card dealt in the hand. See below for values.
+
+        1.  'J', 'Q', or 'K' (otherwise known as "face cards") = 10
+        2.  'A' (ace card) = 11 (if already in hand)
+        3.  '2' - '10' = numerical value.
+
+    Returns:
+        int: Either 1 or 11, which is the value of the upcoming ace card.
+    """
+
+    card_one_value = 11 if card_one == 'A' else value_of_card(card_one)
+    card_two_value = 11 if card_two == 'A' else value_of_card(card_two)
+
+    ace_value = 1 if 11 + (card_one_value + card_two_value) > 21 else 11
+
+    return ace_value
+
+
+def is_blackjack(card_one, card_two):
+    """Determine if the hand is a 'natural' or 'blackjack'.
+
+    Parameters:
+        card_one (str): First card dealt in the hand.  See below for values.
+        card_two (str): Second card dealt in the hand. See below for values.
+
+        1.  'J', 'Q', or 'K' (otherwise known as "face cards") = 10
+        2.  'A' (ace card) = 11 (if already in hand)
+        3.  '2' - '10' = numerical value.
+
+    Returns:
+        bool: Is the hand is a blackjack (two cards worth 21).
+    """
+
+    return (card_one == 'A' or card_two == 'A') and (value_of_card(card_one) == 10 or value_of_card(card_two) == 10)
+
+
+def can_split_pairs(card_one, card_two):
+    """Determine if a player can split their hand into two hands.
+
+    Parameters:
+        card_one (str): First card in the hand.
+        card_two (str): Second card in the hand.
+
+   Returns:
+        bool: Can the hand be split into two pairs? (i.e. cards are of the same value).
+    """
+
+    return value_of_card(card_one) == value_of_card(card_two)
+
+
+def can_double_down(card_one, card_two):
+    """Determine if a blackjack player can place a double down bet.
+
+    Parameters:
+        card_one (str): First card in the hand.
+        card_two (str): Second card in the hand.
+
+    Returns:
+        bool: Can the hand can be doubled down? (i.e. totals 9, 10 or 11 points).
+    """
+
+    return 8 < value_of_card(card_one) + value_of_card(card_two) < 12
+#### exercism/concept/ghost-gobble-arcade-game
+"""Functions for implementing the rules of the classic arcade game Pac-Man."""
+
+
+def eat_ghost(power_pellet_active, touching_ghost):
+    """Verify that Pac-Man can eat a ghost if he is empowered by a power pellet.
+
+    Parameters:
+        power_pellet_active (bool): Does the player have an active power pellet?
+        touching_ghost (bool): Is the player touching a ghost?
+
+    Returns:
+        bool: Can a ghost be eaten?
+
+    """
+
+    return power_pellet_active and touching_ghost
+
+
+def score(touching_power_pellet, touching_dot):
+    """Verify that Pac-Man has scored when a power pellet or dot has been eaten.
+
+    Parameters:
+        touching_power_pellet (bool): Is the player touching a power pellet?
+        touching_dot (bool): Is the player touching a dot?
+
+    Returns:
+        bool: Has the player scored or not?
+
+    """
+
+    return touching_power_pellet or touching_dot
+
+
+def lose(power_pellet_active, touching_ghost):
+    """Trigger the game loop to end (GAME OVER) when Pac-Man touches a ghost without his power pellet.
+
+    Parameters:
+        power_pellet_active (bool): Does the player have an active power pellet?
+        touching_ghost (bool): Is the player touching a ghost?
+
+    Returns:
+        bool: Has the player lost the game?
+    """
+
+    return not power_pellet_active and touching_ghost
+
+
+def win(has_eaten_all_dots, power_pellet_active, touching_ghost):
+    """Trigger the victory event when all dots have been eaten.
+
+    Parameters:
+        has_eaten_all_dots (bool): Has the player "eaten" all the dots?
+        power_pellet_active (bool): Does the player have an active power pellet?
+        touching_ghost (bool): Is the player touching a ghost?
+
+    Returns:
+        bool: Has the player won the game?
+    """
+
+    return has_eaten_all_dots and not lose(power_pellet_active, touching_ghost)
+#### exercism/concept/guidos-gorgeous-lasagna
+"""Functions used in preparing Guido's gorgeous lasagna.
+
+Learn about Guido, the creator of the Python language: https://en.wikipedia.org/wiki/Guido_van_Rossum
+"""
+
+# time the lasagna should be in the oven according to the cookbook.
+EXPECTED_BAKE_TIME = 40
+PREPARATION_TIME = 2
+
+
+def bake_time_remaining(elapsed_bake_time):
+    """Calculate the bake time remaining.
+
+    Parameters:
+        elapsed_bake_time (int): The baking time already elapsed.
+
+    Returns:
+        int: The remaining bake time (in minutes) derived from 'EXPECTED_BAKE_TIME'.
+
+    Function that takes the actual minutes the lasagna has been in the oven as
+    an argument and returns how many minutes the lasagna still needs to bake
+    based on the `EXPECTED_BAKE_TIME`.
+    """
+
+    return EXPECTED_BAKE_TIME - elapsed_bake_time
+
+
+def preparation_time_in_minutes(number_of_layers):
+    """Calculate the preparation time.
+
+    Parameters:
+        number_of_layers(int): The number of lasagna layers made.
+
+    Returns:
+        int: Amount of prep time (in minutes), based on 2 minutes per layer added.
+
+    This function takes an integer representing the number of layers added to the dish,
+    calculating preparation time using a time of 2 minutes per layer added.
+
+    """
+
+    return number_of_layers * PREPARATION_TIME
+
+
+def elapsed_time_in_minutes(number_of_layers, elapsed_bake_time):
+    """Calculate the elapsed time.
+
+    Parameters:
+        number_of_layers (int): The number of layers in the lasagna.
+        elapsed_bake_time (int): Elapsed cooking time.
+
+    Returns:
+        int: Total time elapsed (in minutes) preparing + cooking.
+
+    This function takes two integers representing the number of lasagna layers and the
+    time already spent baking and calculates the total elapsed minutes spent cooking the
+    lasagna.
+
+    """
+
+    return preparation_time_in_minutes(number_of_layers) + elapsed_bake_time
+#### exercism/concept/little-sisters-essay
+"""Functions to help edit essay homework using string manipulation."""
+
+
+def capitalize_title(title):
+    """Convert the first letter of each word in the title to uppercase if needed.
+
+    Parameters:
+        title (str): Essay title that needs title casing.
+
+    Returns:
+        str: The title string in title case (first letters capitalized).
+    """
+
+    return title.title()
+
+
+def check_sentence_ending(sentence):
+    """Check the ending of the sentence to verify that a period is present.
+
+    Parameters:
+        sentence (str): A sentence to check.
+
+    Returns:
+        bool: Is the sentence punctuated correctly?
+    """
+
+    return sentence.endswith(".")
+
+
+def clean_up_spacing(sentence):
+    """Trim any leading or trailing whitespace from the sentence.
+
+    Parameters:
+        sentence (str): A sentence to clean of leading and trailing space characters.
+
+    Returns:
+        str: A sentence that has been cleaned of leading and trailing space characters.
+    """
+
+    clean_sentence = sentence.strip()
+    return clean_sentence
+
+
+def replace_word_choice(sentence, old_word, new_word):
+    """Replace a word in the provided sentence with a new one.
+
+    Parameters:
+        sentence (str): A sentence to replace words in.
+        old_word (str): The word to replace.
+        new_word (str): The replacement word.
+
+    Returns:
+        str: Input sentence with new words in place of old words.
+    """
+
+    better_sentence = sentence.replace(old_word, new_word)
+    return better_sentence
+#### exercism/concept/little-sisters-vocab
+"""Functions for creating, transforming, and adding prefixes to strings."""
+
+
+def add_prefix_un(word):
+    """Take the given word and add the 'un' prefix.
+
+    Parameters:
+        word (str): The root word.
+
+    Returns:
+        str: Root word prepended with 'un'.
+    """
+
+    return 'un' + word
+
+
+def make_word_groups(vocab_words):
+    """Transform a list containing a prefix and words.
+
+    Parameters:
+        vocab_words (list[str]): Vocabulary words with prefix at first index.
+
+    Returns:
+        str: Prefix followed by vocabulary words with prefix applied.
+
+    This function takes a `vocab_words` list of strings and returns a string
+    with the prefix and the words with prefix applied, separated by ' :: '.
+
+    Examples:
+        >>> list('en', 'close', 'joy', 'lighten')
+        'en :: enclose :: enjoy :: enlighten'.
+
+    """
+
+    prefix = vocab_words[0]
+    joiner = ' :: ' + prefix
+
+    return joiner.join(vocab_words)
+
+
+def remove_suffix_ness(word):
+    """Remove the suffix from the word while keeping spelling in mind.
+
+    Parameters:
+        word (str): Word to remove suffix from.
+
+    Returns:
+        str: Word with suffix removed & spelling adjusted.
+
+    Examples:
+        >>> remove_suffix_ness('heaviness')
+        'heavy'
+
+        >>> remove_suffix_ness('sadness')
+        'sad'
+
+    """
+
+    word = word[:-4]
+    if word[-1] == 'i':
+        word = word[:-1] + 'y'
+
+    return word
+
+
+def adjective_to_verb(sentence, index):
+    """Change the adjective within the sentence to a verb.
+
+    Parameters:
+        sentence (str): The word used in a sentence as an adjective.
+        index (int): Index of the adjective to remove and transform.
+
+    Returns:
+        str: The extracted adjective in verb form.
+
+    Examples:
+        >>> adjective_to_verb('It got dark as the sun set.', 2)
+        'darken'
+
+        >>> adjective_to_verb('The ink stains her fingers black.', -1)
+        'blacken'
+
+    """
+
+    word = sentence.split()[index]
+
+    if word[-1] == '.':
+        word = word[:-1] + 'en'
+    else:
+        word = word + 'en'
+
+    return word
+#### exercism/concept/locomotive-engineer
+"""Functions which helps the locomotive engineer to keep track of the train."""
+
+
+def get_list_of_wagons(*args):
+    """Return a list of wagons, given an arbitrary amount of wagon numbers.
+
+    Parameters:
+        An arbitrary number of wagon numbers, unpacked.
+
+    Returns:
+        list: A list of wagon numbers.
+    """
+
+    return list(args)
+
+
+def fix_list_of_wagons(each_wagons_id, missing_wagons):
+    """Fix the list of wagons.
+
+    Parameters:
+        each_wagons_id (list[int]): The list of wagons.
+        missing_wagons (list[int]): The list of missing wagons.
+
+    Returns:
+        list[int]: The corrected list of wagons.
+    """
+
+    first, second, locomotive, *rest = each_wagons_id
+
+    return [locomotive, *missing_wagons, *rest, first, second]
+
+
+def add_missing_stops(route, **kwargs):
+    """Add missing stops to route dict.
+
+    Parameters:
+        route (dict): The dict of routing information.
+        (dict): An arbitrary number of stops.
+
+    Returns:
+        dict: The updated route dictionary.
+    """
+
+    return {**route, "stops": list(kwargs.values())}
+
+
+def extend_route_information(route, more_route_information):
+    """Extend route information with more_route_information.
+
+    Parameters:
+        route (dict): The route information.
+        more_route_information (dict): The extra route information.
+
+    Returns:
+        dict: The extended route information.
+    """
+
+    return {**route, **more_route_information}
+
+
+def fix_wagon_depot(wagons_rows):
+    """Fix the list of rows of wagons.
+
+    Parameters:
+        wagons_rows (list[list[tuple]]): The list of rows of wagons.
+
+    Returns:
+        list[list[tuple]]: the list of rows of wagons.
+    """
+
+    [*row_one], [*row_two], [*row_three] = zip(*wagons_rows)
+
+    return [row_one, row_two, row_three]
+#### exercism/concept/meltdown-mitigation
+"""Functions to prevent a nuclear meltdown."""
+
+
+def is_criticality_balanced(temperature, neutrons_emitted):
+    """Verify criticality is balanced.
+
+    Parameters:
+        temperature (int or float): The temperature value in kelvin.
+        neutrons_emitted (int or float): The number of neutrons emitted per second.
+
+    Returns:
+        bool: Is criticality balanced?
+
+    Note:
+        A reactor is said to be balanced in criticality if it satisfies the following conditions:
+            - The temperature is less than 800 K.
+            - The number of neutrons emitted per second is greater than 500.
+            - The product of temperature and neutrons emitted per second is less than 500000.
+
+    """
+
+    output = temperature * neutrons_emitted
+    balanced = False
+
+    if (temperature < 800 and neutrons_emitted > 500) and output < 500000:
+        balanced = True
+
+    return balanced
+
+
+def reactor_efficiency(voltage, current, theoretical_max_power):
+    """Assess reactor efficiency zone.
+
+    Parameters:
+        voltage (int or float): Voltage value.
+        current (int or float): Current value.
+        theoretical_max_power (int or float): The power level that corresponds to a 100% efficiency.
+
+    Returns:
+        str: One of ('green', 'orange', 'red', or 'black').
+
+    Note:
+        Efficiency can be grouped into 4 bands:
+            1. green -> efficiency of 80% or more,
+            2. orange -> efficiency of less than 80% but at least 60%,
+            3. red -> efficiency below 60%, but still 30% or more,
+            4. black ->  less than 30% efficient.
+
+        The percentage value is calculated as
+        (generated power/ theoretical max power)*100
+        where generated power = voltage * current
+    """
+
+    generated_power = voltage * current
+    percentage_range = (generated_power / theoretical_max_power) * 100
+
+    if 80 <= percentage_range <= 100:
+        efficiency_level = 'green'
+    elif 60 <= percentage_range < 80:
+        efficiency_level = 'orange'
+    elif 30 <= percentage_range < 60:
+        efficiency_level = 'red'
+    else:
+        efficiency_level = 'black'
+
+    return efficiency_level
+
+
+def fail_safe(temperature, neutrons_produced_per_second, threshold):
+    """Assess and return status code for the reactor.
+
+    Parameters:
+        temperature (int or float): The value of the temperature in kelvin.
+        neutrons_produced_per_second (int or float): The neutron flux.
+        threshold (int or float): The threshold for the category.
+
+    Returns:
+        str: One of ('LOW', 'NORMAL', 'DANGER').
+
+    Note:
+        1. 'LOW' -> `temperature * neutrons per second` < 90% of `threshold`
+        2. 'NORMAL' -> `temperature * neutrons per second` +/- 10% of `threshold`
+        3. 'DANGER' -> `temperature * neutrons per second` is not in the above-stated ranges
+    """
+
+    output = temperature * neutrons_produced_per_second
+    operational_percentage = (output / threshold) * 100
+
+    if operational_percentage < 90:
+        status_code = 'LOW'
+    elif operational_percentage <= 110:
+        status_code = 'NORMAL'
+    else:
+        status_code = 'DANGER'
+
+    return status_code
+#### exercism/concept/tisbury-treasure-hunt
+"""Functions to help Azara and Rui locate pirate treasure."""
+
+
+def get_coordinate(record):
+    """Return coordinate value from a tuple containing the treasure name, and treasure coordinate.
+
+    Parameters:
+        record (tuple): A (treasure, coordinate) pair.
+
+    Returns:
+        str: The extracted map coordinate.
+    """
+
+    return record[1]
+
+
+def convert_coordinate(coordinate):
+    """Split the given coordinate into tuple containing its individual components.
+
+    Parameters:
+        coordinate (str): A string map coordinate.
+
+    Returns:
+        tuple: The string coordinate split into its individual components.
+    """
+
+    return tuple(coordinate)
+
+
+def compare_records(azara_record, rui_record):
+    """Compare two record types and determine if their coordinates match.
+
+    Parameters:
+        azara_record (tuple): A (treasure, coordinate) pair.
+        rui_record (tuple): A (location, tuple(coordinate_1, coordinate_2), quadrant) trio.
+
+    Returns:
+        bool: Do the coordinates match?
+    """
+
+    return convert_coordinate(azara_record[1]) in rui_record
+
+
+def create_record(azara_record, rui_record):
+    """Combine the two record types (if possible) and create a combined record group.
+
+    Parameters:
+        azara_record (tuple): A (treasure, coordinate) pair.
+        rui_record (tuple): A (location, coordinate, quadrant) trio.
+
+    Returns:
+        tuple or str: The combined record (if compatible), or the string "not a match" (if incompatible).
+    """
+
+    result = "not a match"
+
+    if compare_records(azara_record, rui_record):
+        result = azara_record + rui_record
+
+    return result
+
+
+def clean_up(combined_record_group):
+    """Clean up a combined record group into a multi-line string of single records.
+
+    Parameters:
+        combined_record_group (tuple): Everything from both participants.
+
+    Returns:
+        str: Everything "cleaned", excess coordinates and information are removed.
+
+    Note:
+        The return statement is a multi-lined string with items separated by newlines.
+        (see HINTS.md for an example).
+
+    """
+
+    report = ""
+
+    for item in combined_record_group:
+        report += f"{(item[0], item[2], item[3], item[4])}\n"
+
+    return report
+#### exercism/practice/binary-search
+def find(search_list, value):
+    low = 0
+    high = len(search_list) - 1
+    while low <= high:
+        middle = (low + high) // 2
+        if search_list[middle] > value:
+            high = middle - 1
+        elif search_list[middle] < value:
+            low = middle + 1
+        else:
+            return middle
+    raise ValueError('value not in array')
+#### exercism/practice/collatz-conjecture
+def steps(number):
+    if number <= 0:
+        raise ValueError('Only positive integers are allowed')
+
+    step_count = 0
+    while number > 1:
+        if is_odd(number):
+            number = number * 3 + 1
+        else:
+            number = number / 2
+        step_count += 1
+
+    return step_count
+
+
+def is_odd(number):
+    return number % 2 == 1
+#### exercism/practice/darts
+from math import sqrt
+
+# X, and Y variable names against [pylint]: C0104, but is the same as the stub, advise not to change this.
+def score(x, y):
+    dart_location = sqrt(x * x + y * y)
+
+    if dart_location <= 1.0:
+        return 10
+    elif dart_location <= 5.0:
+        return 5
+    elif dart_location <= 10.0:
+        return 1
+    else:
+        return 0
+#### exercism/practice/difference-of-squares
+def square_of_sum(number):
+    sum_ = number * (number + 1) / 2
+    return sum_ * sum_
+
+
+def sum_of_squares(number):
+    numerator = number * (number + 1) * (2 * number + 1)
+    return numerator / 6
+
+
+def difference_of_squares(number):
+    return square_of_sum(number) - sum_of_squares(number)
+#### exercism/practice/resistor-color
+COLORS = [
+    'black',
+    'brown',
+    'red',
+    'orange',
+    'yellow',
+    'green',
+    'blue',
+    'violet',
+    'grey',
+    'white'
+]
+
+
+def color_code(color):
+    return COLORS.index(color)
+
+
+def colors():
+    return COLORS
+#### exercism/practice/resistor-color-duo
+COLORS = [
+    'black',
+    'brown',
+    'red',
+    'orange',
+    'yellow',
+    'green',
+    'blue',
+    'violet',
+    'grey',
+    'white'
+]
+
+
+def value(colors):
+    return 10 * COLORS.index(colors[0]) + COLORS.index(colors[1])
+#### exercism/practice/rotational-cipher
+from string import ascii_lowercase, ascii_uppercase
+
+
+ALPHA_LEN = len(ascii_lowercase)
+
+
+def rotate(message, key):
+    coded_message = ''
+    for char in message:
+        if char in ascii_lowercase:
+            char = ascii_lowercase[(ascii_lowercase.index(char) + key) % ALPHA_LEN]
+        elif char in ascii_uppercase:
+            char = ascii_uppercase[(ascii_uppercase.index(char) + key) % ALPHA_LEN]
+        coded_message += char
+    return coded_message
+#### exercism/practice/sum-of-multiples
+def sum_of_multiples(limit, multiples):
+    return sum(value for value in range(limit)
+               if any(value % multiple == 0
+                      for multiple in multiples
+                      if multiple > 0))
+#### thinkpython2/code/ackermann.py
+def ackermann(m, n):
+    """Computes the Ackermann function A(m, n)
+
+    See http://en.wikipedia.org/wiki/Ackermann_function
+
+    n, m: non-negative integers
+    """
+    if m == 0:
+        return n+1
+    if n == 0:
+        return ackermann(m-1, 1)
+    return ackermann(m-1, ackermann(m, n-1))
+
+
+print(ackermann(3, 4))
+#### thinkpython2/code/ackermann_memo.py
+cache = {}
+
+def ackermann(m, n):
+    """Computes the Ackermann function A(m, n)
+
+    See http://en.wikipedia.org/wiki/Ackermann_function
+
+    n, m: non-negative integers
+    """
+    if m == 0:
+        return n+1
+    if n == 0:
+        return ackermann(m-1, 1)
+
+    if (m, n) in cache:
+        return cache[m, n]
+    else:
+        cache[m, n] = ackermann(m-1, ackermann(m, n-1))
+        return cache[m, n]
+
+
+print(ackermann(3, 4))
+print(ackermann(3, 6))
+#### thinkpython2/code/birthday.py
+import random
+
+
+def has_duplicates(t):
+    """Returns True if any element appears more than once in a sequence.
+
+    t: list
+
+    returns: bool
+    """
+    # make a copy of t to avoid modifying the parameter
+    s = t[:]
+    s.sort()
+
+    # check for adjacent elements that are equal
+    for i in range(len(s)-1):
+        if s[i] == s[i+1]:
+            return True
+    return False
+
+
+def random_bdays(n):
+    """Returns a list of integers between 1 and 365, with length n.
+
+    n: int
+
+    returns: list of int
+    """
+    t = []
+    for i in range(n):
+        bday = random.randint(1, 365)
+        t.append(bday)
+    return t
+
+
+def count_matches(num_students, num_simulations):
+    """Generates a sample of birthdays and counts duplicates.
+
+    num_students: how many students in the group
+    num_samples: how many groups to simulate
+
+    returns: int
+    """
+    count = 0
+    for i in range(num_simulations):
+        t = random_bdays(num_students)
+        if has_duplicates(t):
+            count += 1
+    return count
+
+
+def main():
+    """Runs the birthday simulation and prints the number of matches."""
+    num_students = 23
+    num_simulations = 1000
+    count = count_matches(num_students, num_simulations)
+
+    print('After %d simulations' % num_simulations)
+    print('with %d students' % num_students)
+    print('there were %d simulations with at least one match' % count)
+
+
+if __name__ == '__main__':
+    main()
+#### thinkpython2/code/cartalk2.py
+def has_palindrome(i, start, length):
+    """Checks if the string representation of i has a palindrome.
+
+    i: integer
+    start: where in the string to start
+    length: length of the palindrome to check for
+    """
+    s = str(i)[start:start+length]
+    return s[::-1] == s
+
+
+def check(i):
+    """Checks if the integer (i) has the desired properties.
+
+    i: int
+    """
+    return (has_palindrome(i, 2, 4) and
+            has_palindrome(i+1, 1, 5) and
+            has_palindrome(i+2, 1, 4) and
+            has_palindrome(i+3, 0, 6))
+
+
+def check_all():
+    """Enumerate the six-digit numbers and print any winners.
+    """
+    i = 100000
+    while i <= 999996:
+        if check(i):
+            print(i)
+        i = i + 1
+
+
+print('The following are the possible odometer readings:')
+check_all()
+print()
+#### thinkpython2/code/do_four.py
+def do_twice(func, arg):
+    """Runs a function twice.
+
+    func: function object
+    arg: argument passed to the function
+    """
+    func(arg)
+    func(arg)
+
+
+def print_twice(arg):
+    """Prints the argument twice.
+
+    arg: anything printable
+    """
+    print(arg)
+    print(arg)
+
+
+def do_four(func, arg):
+    """Runs a function four times.
+
+    func: function object
+    arg: argument passed to the function
+    """
+    do_twice(func, arg)
+    do_twice(func, arg)
+
+
+do_twice(print, 'spam')
+print('')
+
+do_four(print, 'spam')
+#### thinkpython2/code/double.py
+from datetime import datetime
+
+
+def main():
+    print("Today's date and the day of the week:")
+    today = datetime.today()
+    print(today)
+    print(today.strftime("%A"))
+
+    print("Your next birthday and how far away it is:")
+    #s = input('Enter your birthday in mm/dd/yyyy format: ')
+    s = '5/11/1967'
+    bday = datetime.strptime(s, '%m/%d/%Y')
+
+    next_bday = bday.replace(year=today.year)
+    if next_bday < today:
+        next_bday = next_bday.replace(year=today.year+1)
+    print(next_bday)
+
+    until_next_bday = next_bday - today
+    print(until_next_bday)
+
+    print("Your current age:")
+    last_bday = next_bday.replace(year=next_bday.year-1)
+    age = last_bday.year - bday.year
+    print(age)
+
+    print("For people born on these dates:")
+    bday1 = datetime(day=11, month=5, year=1967)
+    bday2 = datetime(day=11, month=10, year=2003)
+    print(bday1)
+    print(bday2)
+
+    print("Double Day is")
+    d1 = min(bday1, bday2)
+    d2 = max(bday1, bday2)
+    dd = d2 + (d2 - d1)
+    print(dd)
+
+
+if __name__ == '__main__':
+    main()
+#### thinkpython2/code/palindrome_soln.py
+def first(word):
+    """Returns the first character of a string."""
+    return word[0]
+
+
+def last(word):
+    """Returns the last of a string."""
+    return word[-1]
+
+
+def middle(word):
+    """Returns all but the first and last characters of a string."""
+    return word[1:-1]
+
+
+def is_palindrome(word):
+    """Returns True if word is a palindrome."""
+    if len(word) <= 1:
+        return True
+    if first(word) != last(word):
+        return False
+    return is_palindrome(middle(word))
+
+
+print(is_palindrome('allen'))
+print(is_palindrome('bob'))
+print(is_palindrome('otto'))
+print(is_palindrome('redivider'))
+#### thinkpython2/code/pi.py
+import math
+
+
+def factorial(n):
+    """Computes factorial of n recursively."""
+    if n == 0:
+        return 1
+    else:
+        recurse = factorial(n-1)
+        result = n * recurse
+        return result
+
+
+def estimate_pi():
+    """Computes an estimate of pi.
+
+    Algorithm due to Srinivasa Ramanujan, from
+    http://en.wikipedia.org/wiki/Pi
+    """
+    total = 0
+    k = 0
+    factor = 2 * math.sqrt(2) / 9801
+    while True:
+        num = factorial(4*k) * (1103 + 26390*k)
+        den = factorial(k)**4 * 396**(4*k)
+
+        total += num / den
+        term = factor * num/den
+
+        if abs(term) < 1e-15:
+            break
+        k += 1
+
+    return 1 / (factor * total)
+
+print(estimate_pi())
+#### thinkpython2/code/unstable_sort.py
+import random
+
+
+def sort_by_length(words):
+    """Sort a list of words in reverse order by length.
+
+    This is the version in the book; it is stable in the sense that
+    words with the same length appear in the same order
+
+    words: list of strings
+
+    Returns: list of strings
+    """
+    t = []
+    for word in words:
+        t.append((len(word), word))
+
+    t.sort(reverse=True)
+
+    res = []
+    for length, word in t:
+        res.append(word)
+    return res
+
+
+def sort_by_length_random(words):
+    """Sort a list of words in reverse order by length.
+
+    This is the solution to the exercise.  It is unstable in the
+    sense that if two words have the same length, their order in
+    the output list is random.
+
+    It works by extending the list of tuples with a column of
+    random numbers; when there is a tie in the first column,
+    the random column determines the output order.
+
+    words: list of strings
+
+    Returns: list of strings
+    """
+    t = []
+    for word in words:
+        t.append((len(word), random.random(), word))
+
+    t.sort(reverse=True)
+
+    res = []
+    for length, _, word in t:
+        res.append(word)
+    return res
+
+
+if __name__ == '__main__':
+    words = ['John', 'Eric', 'Graham', 'Terry', 'Terry', 'Michael']
+
+    t = sort_by_length_random(words)
+    for x in t:
+        print(x)
