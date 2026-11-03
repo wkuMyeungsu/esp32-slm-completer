@@ -24,7 +24,12 @@
         "esp32Slm.bridgeDir": {
           "type": "string",
           "default": "",
-          "description": "저장소 bridge 폴더의 절대 경로. 비우면 확장 폴더 옆 ../bridge (개발 모드)"
+          "description": "브리지 명령을 실행할 폴더의 절대 경로. 비우면 확장 폴더 옆 ../bridge (개발 모드)"
+        },
+        "esp32Slm.bridgeCommand": {
+          "type": "string",
+          "default": "uv run bridge.py",
+          "description": "bridgeDir에서 실행할 명령. 보드 대신 PC에서 모델을 돌리려면 train 폴더에서 'uv run serve_pc.py EleutherAI/pythia-31m'"
         }
       }
     }

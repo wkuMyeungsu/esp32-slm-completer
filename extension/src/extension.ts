@@ -13,8 +13,9 @@ export function activate(ctx: vscode.ExtensionContext) {
   // 설치본은 확장 폴더가 ~/.vscode/extensions로 옮겨지므로 설정의 bridge 경로를 쓴다. 비어 있으면 개발 모드(F5) 위치
   const bridgeDir = vscode.workspace.getConfiguration('esp32Slm').get<string>('bridgeDir')
     || path.join(ctx.extensionPath, '..', 'bridge');
-  // Windows에서 uv가 .bat(pyenv-win shim)일 수 있어 셸로 실행한다. 명령은 고정 문자열
-  bridge = spawn('uv run bridge.py', { cwd: bridgeDir, shell: true });
+  // Windows에서 uv가 .bat(pyenv-win shim)일 수 있어 셸로 실행한다. 명령은 사용자 설정값
+  const command = vscode.workspace.getConfiguration('esp32Slm').get<string>('bridgeCommand') || 'uv run bridge.py';
+  bridge = spawn(command, { cwd: bridgeDir, shell: true });
   bridge.on('error', (e) => {
     vscode.window.showWarningMessage(`ESP32 SLM: 브리지 실행 실패 (${e.message}), esp32Slm.bridgeDir 설정과 uv 설치를 확인하세요`);
     bridge = undefined;
@@ -39,18 +40,22 @@ export function activate(ctx: vscode.ExtensionContext) {
     bridge?.stdin.write(JSON.stringify({ type: 'accept', id }) + '\n');
   }));
 
-  // shortcut: 키 입력마다 요청한다, 느려지면 디바운스 추가
+  // 보드는 요청을 하나씩 처리하고 한 번에 0.5~1초 걸린다. 입력이 멈출 때까지(300ms) 기다려 지난 요청이 쌓이지 않게 한다
   const provider: vscode.InlineCompletionItemProvider = {
     async provideInlineCompletionItems(doc, pos, _ctx, token) {
       if (!bridge) return;
+      await new Promise((r) => setTimeout(r, 300));
+      if (token.isCancellationRequested) return;
       const prefix = doc.getText(new vscode.Range(new vscode.Position(0, 0), pos)).slice(-1024);
       const id = nextId++;
       const completion = await new Promise<string>((resolve) => {
         pending.set(id, resolve);
         bridge!.stdin.write(JSON.stringify({ id, prefix }) + '\n');
-        setTimeout(() => { pending.delete(id); resolve(''); }, 3000);
+        setTimeout(() => { pending.delete(id); resolve(''); }, 15000);  // 캐시 없는 첫 요청은 앞부분이 길면 보드에서 10초 가까이 걸린다
       });
       if (!completion || token.isCancellationRequested) return;
+      // VS Code에 넘긴 제안만 shown으로 기록한다 (수락률의 분모). 입력이 이어져 버려진 요청은 빠진다
+      bridge?.stdin.write(JSON.stringify({ type: 'shown', id }) + '\n');
       const item = new vscode.InlineCompletionItem(completion, new vscode.Range(pos, pos));
       item.command = { title: 'accepted', command: 'esp32Slm.accepted', arguments: [id] };
       return [item];

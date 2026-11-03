@@ -7,7 +7,7 @@ const FIXTURE = path.resolve(__dirname, '../../../test-fixture');  // 가짜 브
 const ACCEPT_LOG = process.env.FAKE_ACCEPT_LOG!;
 
 suite('esp32-slm-completer', () => {
-  test('Python 파일에서 제안을 받고, 수락하면 브리지에 accept가 간다', async () => {
+  test('Python 파일에서 제안을 받으면 shown, 수락하면 accept가 브리지에 간다', async () => {
     fs.rmSync(ACCEPT_LOG, { force: true });
     await vscode.workspace.getConfiguration('esp32Slm')
       .update('bridgeDir', FIXTURE, vscode.ConfigurationTarget.Global);
@@ -27,7 +27,8 @@ suite('esp32-slm-completer', () => {
     await vscode.commands.executeCommand(cmd.command, ...(cmd.arguments ?? []));
     // 파일이 생긴 뒤 내용이 쓰이기까지 틈이 있어서, 내용이 들어올 때까지 기다린다
     const read = () => (fs.existsSync(ACCEPT_LOG) ? fs.readFileSync(ACCEPT_LOG, 'utf-8').trim() : '');
-    for (let i = 0; i < 50 && !read(); i++) await new Promise((r) => setTimeout(r, 100));
-    assert.strictEqual(read(), String(cmd.arguments![0]));
+    for (let i = 0; i < 50 && !read().includes('accept'); i++) await new Promise((r) => setTimeout(r, 100));
+    const id = cmd.arguments![0];
+    assert.deepStrictEqual(read().split(/\r?\n/), [`shown ${id}`, `accept ${id}`]);  // Windows는 \r\n
   });
 });
